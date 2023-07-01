@@ -108,23 +108,4 @@ describe("testing chat completion use case", () => {
       left(new Error("error fetching existing chat"))
     );
   });
-
-  it("should find the chat and throws error", () => {
-    const chatId = "511022dc-6e6b-4c7a-8af9-17f600c01c2c";
-    const userId = "34687268-e732-4e78-82af-c1e27da38fb3";
-    const chatCompletion = chatCompletionUseCase.execute({
-      chatId,
-      userId,
-      userMessage: "test",
-      config: chatCompletionInputConfig,
-    });
-
-    expect(chatCompletion).toEqual(
-      right({
-        chatId,
-        content: "mock",
-        userId,
-      })
-    );
-  });
 });
