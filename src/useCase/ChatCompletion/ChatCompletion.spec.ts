@@ -1,107 +1,86 @@
-import { validate } from "uuid";
 import { OpenAIApi } from "openai";
-import { Chat } from "../../domain/entity/Chat";
+import { validate } from "uuid";
+import { Chat, TChatConfig } from "../../domain/entity/Chat";
 import { Message } from "../../domain/entity/Message";
 import { Model } from "../../domain/entity/Model";
 import { ChatGateway } from "../../domain/gateway/ChatGateway";
 import { Either, left, right } from "../../shared/either";
-import { ChatCompletionUseCase } from "./ChatCompletion";
+import {
+  ChatCompletionConfigInputDTO,
+  ChatCompletionUseCase,
+} from "./ChatCompletion";
 
-interface IChatOptions {
-  temperature: number;
-  topP: number;
-  n: number;
-  stop: Array<string>;
-  maxTokens: number;
-  presencePenalty: number;
-  frequencyPenalty: number;
-}
-
-// @@@ mocks @@@
-
-const chatConfigMock = {
-  temperature: 0.75,
-  topP: 0.8,
-  n: 10,
-  stop: [],
-  maxTokens: 500,
-  presencePenalty: 1.5,
-  frequencyPenalty: 2.0,
-};
-
-const createNewChatMock = (userId: string, options: IChatOptions) => {
-  const { chatConfig, message } = createChatConfigMock(options);
-  return Chat.create(userId, message.value as Message, chatConfig);
-};
-
-const createChatConfigMock = (options: IChatOptions) => {
-  const model = Model.create("codex", 500);
-  const message = Message.create("user", "Why the sky is blue?", model);
-  const chatConfig = {
-    ...options,
-    model,
+type SutTypes = {
+  sut: ChatCompletionUseCase;
+  chatConfigMock: ChatCompletionConfigInputDTO;
+  chatGateway: {
+    findChatById: jest.Mock<any, any, any>;
   };
-  return { chatConfig, message };
+  chatMock: Either<Error, Chat>;
 };
-
-const chatGatewayMock: ChatGateway = {
-  createChat(chat: Chat): Either<Error, Chat> {
-    if (chat) {
-      return right(chat);
-    }
-    return left(new Error("error creating new chat"));
-  },
-  findChatById(chatId: string): Either<Error, Chat> {
-    if (chatId) {
-      if (validate(chatId)) {
-        const chat = createNewChatMock("uuid", chatConfigMock);
-        return right(chat.value as Chat);
-      }
-      return left(new Error("error fetching existing chat"));
-    }
-    return left(new Error("chat not found"));
-  },
-  saveChat(chat: Chat): Either<Error, Chat> {
-    if (chat) {
-      return right(chat);
-    }
-    return left(new Error("error persisting new chat"));
-  },
-};
-
-const chatCompletionUseCase = new ChatCompletionUseCase(
-  chatGatewayMock,
-  new OpenAIApi()
-);
-const { chatConfig } = createChatConfigMock(chatConfigMock);
-
-const chatCompletionInputConfig = {
-  ...chatConfig,
-  initialSystemMessage: "",
-  modelMaxTokens: chatConfig.maxTokens,
-  model: "gpt",
-};
-
-// @@@ tests @@@
 
 describe("testing chat completion use case", () => {
-  it("shouldn't find the chat and throws error", () => {
-    const chatCompletion = chatCompletionUseCase.execute({
-      chatId: "",
-      userId: "uuid",
-      userMessage: "test",
-      config: chatCompletionInputConfig,
-    });
+  let makeSut: () => SutTypes;
+  beforeEach(() => {
+    makeSut = () => {
+      const chatGateway = { findChatById: jest.fn() };
+      const openAiClientMock = {} as OpenAIApi;
+      const sut = new ChatCompletionUseCase(chatGateway, openAiClientMock);
+      const chatConfigMock: ChatCompletionConfigInputDTO = {
+        temperature: 0.75,
+        topP: 0.8,
+        n: 10,
+        stop: [],
+        maxTokens: 500,
+        presencePenalty: 1.5,
+        frequencyPenalty: 2.0,
+        model: "gpt",
+        initialSystemMessage: "hello",
+        modelMaxTokens: 500,
+      };
+      const chatMock = Chat.create(
+        "uuid",
+        Message.create(
+          "system",
+          chatConfigMock.initialSystemMessage,
+          Model.create(chatConfigMock.model, chatConfigMock.maxTokens)
+        ).value as Message,
+        {
+          frequencyPenalty: chatConfigMock.frequencyPenalty,
+          maxTokens: chatConfigMock.maxTokens,
+          model: Model.create(chatConfigMock.model, chatConfigMock.maxTokens),
+          n: chatConfigMock.n,
+          presencePenalty: chatConfigMock.presencePenalty,
+          stop: chatConfigMock.stop,
+          temperature: chatConfigMock.temperature,
+          topP: chatConfigMock.temperature,
+        }
+      );
 
-    expect(chatCompletion).toEqual(left(new Error("chat not found")));
+      return {
+        sut,
+        chatConfigMock,
+        chatGateway,
+        chatMock,
+      };
+    };
   });
 
-  it("shouldn't when something goes wrong throws error", () => {
-    const chatCompletion = chatCompletionUseCase.execute({
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("needs to throw error when something goes wrong ", () => {
+    const { chatConfigMock, sut, chatGateway } = makeSut();
+
+    chatGateway.findChatById.mockReturnValue(
+      left(new Error("error fetching existing chat"))
+    );
+    const chatCompletion = sut.execute({
       chatId: "uuid",
       userId: "uuid",
       userMessage: "test",
-      config: chatCompletionInputConfig,
+      config: chatConfigMock,
     });
 
     expect(chatCompletion).toEqual(
@@ -109,14 +88,159 @@ describe("testing chat completion use case", () => {
     );
   });
 
+  it("should throw error when creating initial message on new chat when chat not found", () => {
+    const { chatConfigMock, sut, chatGateway } = makeSut();
+
+    chatGateway.findChatById.mockReturnValue(left(new Error("chat not found")));
+
+    jest
+      .spyOn(sut, "createNewChat")
+      .mockReturnValue(left(new Error("error creating initial message")));
+
+    const chatCompletion = sut.execute({
+      chatId: "uuid",
+      userId: "uuid",
+      userMessage: "test",
+      config: chatConfigMock,
+    });
+
+    expect(chatCompletion).toEqual(
+      left(new Error("error creating initial message"))
+    );
+  });
+
+  it("should throw error when creating initial message on new chat", () => {
+    const { chatConfigMock, sut } = makeSut();
+
+    const newChat = sut.createNewChat({
+      chatId: "uuid",
+      userId: "uuid",
+      userMessage: "test",
+      config: { ...chatConfigMock, initialSystemMessage: "" },
+    });
+    expect(newChat).toEqual(left(new Error("error creating initial message")));
+  });
+
+  it("should throw error when creating a new chat when chat not found", () => {
+    const { chatConfigMock, sut, chatGateway } = makeSut();
+
+    chatGateway.findChatById.mockReturnValue(left(new Error("chat not found")));
+
+    jest
+      .spyOn(sut, "createNewChat")
+      .mockReturnValue(left(new Error("error creating new chat")));
+
+    const chatCompletion = sut.execute({
+      chatId: "uuid",
+      userId: "uuid",
+      userMessage: "test",
+      config: chatConfigMock,
+    });
+
+    expect(chatCompletion).toEqual(left(new Error("error creating new chat")));
+  });
+
+  it("should throw error when creating a new chat", () => {
+    const { chatConfigMock, sut } = makeSut();
+
+    const newChat = sut.createNewChat({
+      chatId: "uuid",
+      userId: "",
+      userMessage: "test",
+      config: chatConfigMock,
+    });
+    expect(newChat).toEqual(left(new Error("error creating new chat")));
+  });
+
+  it("should throw an error creating user message if chat was found", () => {
+    const { chatConfigMock, sut, chatGateway, chatMock } = makeSut();
+
+    chatGateway.findChatById.mockReturnValue(chatMock);
+
+    const messageCreateSpy = jest
+      .spyOn(Message, "create")
+      .mockReturnValue(left(new Error("error creating user message")));
+
+    const result = sut.execute({
+      chatId: "uuid",
+      userId: "uuid",
+      userMessage: "",
+      config: chatConfigMock,
+    });
+
+    expect(result).toEqual(left(new Error("error creating user message")));
+    expect(messageCreateSpy).toHaveBeenCalledWith("user", "", {
+      name: chatConfigMock.model,
+      maxTokens: chatConfigMock.maxTokens,
+    });
+  });
+
+  it("should throw an error when adding new message in a new chat", () => {
+    const { chatConfigMock, sut, chatGateway, chatMock } = makeSut();
+
+    chatGateway.findChatById.mockReturnValue(chatMock);
+
+    const addMessageSpy = jest
+      .spyOn(sut, "addMessageOnChat")
+      .mockReturnValue(left(new Error("error adding new message")));
+
+    const result = sut.execute({
+      chatId: "uuid",
+      userId: "uuid",
+      userMessage: "test",
+      config: chatConfigMock,
+    });
+
+    expect(result).toEqual(left(new Error("error adding new message")));
+    expect(addMessageSpy).toHaveBeenCalledTimes(1);
+  });
+
   it("should return the chat completion", () => {
+    const { chatConfigMock, sut } = makeSut();
     const chatId = "511022dc-6e6b-4c7a-8af9-17f600c01c2c";
     const userId = "34687268-e732-4e78-82af-c1e27da38fb3";
-    const chatCompletion = chatCompletionUseCase.execute({
+    const chat = sut.createNewChat({
       chatId,
       userId,
       userMessage: "test",
-      config: chatCompletionInputConfig,
+      config: chatConfigMock,
+    });
+
+    expect(chat.isRight).toBeTruthy();
+  });
+
+  it("should return the expected chat when creating a new one", () => {
+    const { chatConfigMock, sut, chatGateway, chatMock } = makeSut();
+
+    chatGateway.findChatById.mockReturnValue(left(new Error("chat not found")));
+
+    jest
+      .spyOn(sut, "createNewChat")
+      .mockReturnValue(right(chatMock.value as Chat));
+
+    sut.execute({
+      chatId: "uuid",
+      userId: "uuid",
+      userMessage: "test",
+      config: chatConfigMock,
+    });
+
+    expect(sut.createNewChat).toHaveBeenCalledTimes(1);
+    expect(sut.createNewChat).toHaveReturnedWith(right(chatMock.value as Chat));
+  });
+
+  it("should return the chat completion", () => {
+    const { chatConfigMock, sut, chatGateway, chatMock } = makeSut();
+
+    chatGateway.findChatById.mockReturnValue(chatMock);
+
+    const chatId = "511022dc-6e6b-4c7a-8af9-17f600c01c2c";
+    const userId = "34687268-e732-4e78-82af-c1e27da38fb3";
+    const chatCompletion = sut.execute({
+      chatId,
+      userId,
+      userMessage: "test",
+      config: chatConfigMock,
     });
 
     expect(chatCompletion).toEqual(
