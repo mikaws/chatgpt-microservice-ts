@@ -1,9 +1,7 @@
 import { OpenAIApi } from "openai";
-import { validate } from "uuid";
-import { Chat, TChatConfig } from "../../domain/entity/Chat";
+import { Chat } from "../../domain/entity/Chat";
 import { Message } from "../../domain/entity/Message";
 import { Model } from "../../domain/entity/Model";
-import { ChatGateway } from "../../domain/gateway/ChatGateway";
 import { Either, left, right } from "../../shared/either";
 import {
   ChatCompletionConfigInputDTO,
@@ -44,11 +42,13 @@ describe("testing chat completion use case", () => {
           "system",
           chatConfigMock.initialSystemMessage,
           Model.create(chatConfigMock.model, chatConfigMock.maxTokens)
+            .value as Model
         ).value as Message,
         {
           frequencyPenalty: chatConfigMock.frequencyPenalty,
           maxTokens: chatConfigMock.maxTokens,
-          model: Model.create(chatConfigMock.model, chatConfigMock.maxTokens),
+          model: Model.create(chatConfigMock.model, chatConfigMock.maxTokens)
+            .value as Model,
           n: chatConfigMock.n,
           presencePenalty: chatConfigMock.presencePenalty,
           stop: chatConfigMock.stop,
@@ -93,23 +93,35 @@ describe("testing chat completion use case", () => {
 
     chatGateway.findChatById.mockReturnValue(left(new Error("chat not found")));
 
-    jest
-      .spyOn(sut, "createNewChat")
-      .mockReturnValue(left(new Error("error creating initial message")));
-
     const chatCompletion = sut.execute({
       chatId: "uuid",
       userId: "uuid",
       userMessage: "test",
-      config: chatConfigMock,
+      config: { ...chatConfigMock, initialSystemMessage: "" },
     });
 
     expect(chatCompletion).toEqual(
-      left(new Error("error creating initial message"))
+      left(new Error("error creating initial message: content is empty"))
     );
   });
 
-  it("should throw error when creating initial message on new chat", () => {
+  it("should throw error when creating model with invalid maxTokens on new chat", () => {
+    const { chatConfigMock, sut } = makeSut();
+
+    const newChat = sut.createNewChat({
+      chatId: "uuid",
+      userId: "uuid",
+      userMessage: "test",
+      config: { ...chatConfigMock, modelMaxTokens: 0 },
+    });
+    expect(newChat).toEqual(
+      left(
+        new Error("error creating model: maxTokens needs to be greater than 0")
+      )
+    );
+  });
+
+  it("should throw error when creating initial message without content on new chat", () => {
     const { chatConfigMock, sut } = makeSut();
 
     const newChat = sut.createNewChat({
@@ -118,7 +130,9 @@ describe("testing chat completion use case", () => {
       userMessage: "test",
       config: { ...chatConfigMock, initialSystemMessage: "" },
     });
-    expect(newChat).toEqual(left(new Error("error creating initial message")));
+    expect(newChat).toEqual(
+      left(new Error("error creating initial message: content is empty"))
+    );
   });
 
   it("should throw error when creating a new chat when chat not found", () => {
@@ -126,18 +140,16 @@ describe("testing chat completion use case", () => {
 
     chatGateway.findChatById.mockReturnValue(left(new Error("chat not found")));
 
-    jest
-      .spyOn(sut, "createNewChat")
-      .mockReturnValue(left(new Error("error creating new chat")));
-
     const chatCompletion = sut.execute({
       chatId: "uuid",
-      userId: "uuid",
+      userId: "",
       userMessage: "test",
       config: chatConfigMock,
     });
 
-    expect(chatCompletion).toEqual(left(new Error("error creating new chat")));
+    expect(chatCompletion).toEqual(
+      left(new Error("error creating new chat: user id is empty"))
+    );
   });
 
   it("should throw error when creating a new chat", () => {
@@ -149,7 +161,9 @@ describe("testing chat completion use case", () => {
       userMessage: "test",
       config: chatConfigMock,
     });
-    expect(newChat).toEqual(left(new Error("error creating new chat")));
+    expect(newChat).toEqual(
+      left(new Error("error creating new chat: user id is empty"))
+    );
   });
 
   it("should throw an error creating user message if chat was found", () => {
@@ -159,7 +173,7 @@ describe("testing chat completion use case", () => {
 
     const messageCreateSpy = jest
       .spyOn(Message, "create")
-      .mockReturnValue(left(new Error("error creating user message")));
+      .mockReturnValue(left(new Error("content is empty")));
 
     const result = sut.execute({
       chatId: "uuid",
@@ -168,7 +182,9 @@ describe("testing chat completion use case", () => {
       config: chatConfigMock,
     });
 
-    expect(result).toEqual(left(new Error("error creating user message")));
+    expect(result).toEqual(
+      left(new Error("error creating user message: content is empty"))
+    );
     expect(messageCreateSpy).toHaveBeenCalledWith("user", "", {
       name: chatConfigMock.model,
       maxTokens: chatConfigMock.maxTokens,
@@ -182,7 +198,9 @@ describe("testing chat completion use case", () => {
 
     const addMessageSpy = jest
       .spyOn(sut, "addMessageOnChat")
-      .mockReturnValue(left(new Error("error adding new message")));
+      .mockReturnValue(
+        left(new Error("chat is ended, no more messages allowed"))
+      );
 
     const result = sut.execute({
       chatId: "uuid",
@@ -191,7 +209,13 @@ describe("testing chat completion use case", () => {
       config: chatConfigMock,
     });
 
-    expect(result).toEqual(left(new Error("error adding new message")));
+    expect(result).toEqual(
+      left(
+        new Error(
+          "error adding new message: chat is ended, no more messages allowed"
+        )
+      )
+    );
     expect(addMessageSpy).toHaveBeenCalledTimes(1);
   });
 

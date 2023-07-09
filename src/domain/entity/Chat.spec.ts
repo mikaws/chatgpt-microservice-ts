@@ -24,15 +24,17 @@ interface IChatOptions {
 const createChat = (userId: string, options: IChatOptions) => {
   const { maxTokens } = options;
   const model = Model.create("codex", maxTokens);
-  const message = Message.create("user", "Why the sky is blue?", model);
+  const message = Message.create(
+    "user",
+    "Why the sky is blue?",
+    model.value as Model
+  );
   const chatConfig = {
     ...options,
-    model,
+    model: model.value as Model,
   };
   return Chat.create(userId, message.value as Message, chatConfig);
 };
-
-afterEach;
 
 describe("testing Chat", () => {
   it("should to create a Chat and return values correctly", () => {
@@ -102,7 +104,11 @@ describe("testing Chat", () => {
 
     for (let i = 1; i <= 4; i++) {
       const model = Model.create("codex", maxTokens);
-      const message = Message.create("user", `Mock message n°: ${i}`, model);
+      const message = Message.create(
+        "user",
+        `Mock message n°: ${i}`,
+        model.value as Model
+      );
       chat.addMessage(message.value as Message);
     }
 
@@ -127,7 +133,7 @@ describe("testing Chat", () => {
     const messageOrError = Message.create(
       "user",
       "How be a better person?",
-      model
+      model.value as Model
     );
 
     expect(messageOrError.isRight()).toBeTruthy();
