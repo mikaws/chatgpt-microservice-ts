@@ -25,7 +25,7 @@ export type TChat = {
   config: TChatConfig;
 };
 
-export class Chat implements TChat {
+export class Chat {
   readonly id: string;
   readonly userId: string;
   readonly initialSystemMessage: Message;
@@ -45,7 +45,7 @@ export class Chat implements TChat {
     return this._tokenUsage;
   }
 
-  constructor({
+  private constructor({
     id,
     userId,
     initialSystemMessage,
@@ -129,10 +129,7 @@ export class Chat implements TChat {
     this.messages.push(m);
     this._tokenUsage += m.tokens;
 
-    while (
-      this._tokenUsage >
-      this.config.model.maxTokens
-    ) {
+    while (this._tokenUsage > this.config.model.maxTokens) {
       const oldestMessage = this.messages.shift();
       if (oldestMessage) {
         this.erasedMessages.push(oldestMessage);

@@ -68,13 +68,15 @@ export class ChatCompletionUseCase {
       chat.config.model
     );
     if (userMessageOrError.isLeft()) {
-      return left(new Error("error creating user message"));
+      const error = userMessageOrError.value;
+      return left(new Error("error creating user message: " + error.message));
     }
     const userMessage = userMessageOrError.value;
 
     const messageAddedOrError = this.addMessageOnChat(chat, userMessage);
     if (messageAddedOrError.isLeft()) {
-      return left(new Error("error adding new message"));
+      const error = messageAddedOrError.value;
+      return left(new Error("error adding new message: " + error.message));
     }
     return right({
       chatId: input.chatId,
@@ -88,7 +90,25 @@ export class ChatCompletionUseCase {
   }
 
   createNewChat(input: ChatCompletionInputDTO): Either<Error, Chat> {
-    const model = new Model(input.config.model, input.config.modelMaxTokens);
+    const model = Model.create(input.config.model, input.config.modelMaxTokens);
+    if (model.isLeft()) {
+      const error = model.value;
+      return left(new Error("error creating model: " + error.message));
+    }
+
+    const initialMessageOrError = Message.create(
+      "system",
+      input.config.initialSystemMessage,
+      model.value
+    );
+    if (initialMessageOrError.isLeft()) {
+      const error = initialMessageOrError.value;
+      return left(
+        new Error("error creating initial message: " + error.message)
+      );
+    }
+    const initialMessage = initialMessageOrError.value;
+
     const chatConfig: TChatConfig = {
       temperature: input.config.temperature,
       topP: input.config.topP,
@@ -97,21 +117,13 @@ export class ChatCompletionUseCase {
       maxTokens: input.config.maxTokens,
       presencePenalty: input.config.presencePenalty,
       frequencyPenalty: input.config.frequencyPenalty,
-      model,
+      model: model.value,
     };
-    const initialMessageOrError = Message.create(
-      "system",
-      input.config.initialSystemMessage,
-      model
-    );
-    if (initialMessageOrError.isLeft()) {
-      return left(new Error("error creating initial message"));
-    }
-    const initialMessage = initialMessageOrError.value;
 
     const chatOrError = Chat.create(input.userId, initialMessage, chatConfig);
     if (chatOrError.isLeft()) {
-      return left(new Error("error creating new chat"));
+      const error = chatOrError.value;
+      return left(new Error("error creating new chat: " + error.message));
     }
     const chat = chatOrError.value;
 

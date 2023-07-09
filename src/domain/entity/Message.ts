@@ -12,7 +12,7 @@ type TMessage = {
   createdAt: Date;
 };
 
-export class Message implements TMessage {
+export class Message {
   readonly id: string;
   readonly role: string;
   readonly content: string;
@@ -20,7 +20,14 @@ export class Message implements TMessage {
   readonly tokens: number;
   readonly createdAt: Date;
 
-  constructor({ id, role, content, model, tokens, createdAt }: TMessage) {
+  private constructor({
+    id,
+    role,
+    content,
+    model,
+    tokens,
+    createdAt,
+  }: TMessage) {
     this.id = id;
     this.role = role;
     this.content = content;
