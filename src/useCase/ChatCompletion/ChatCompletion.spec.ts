@@ -12,7 +12,9 @@ type SutTypes = {
   sut: ChatCompletionUseCase;
   chatConfigMock: ChatCompletionConfigInputDTO;
   chatGateway: {
+    createChat: jest.Mock<any, any, any>;
     findChatById: jest.Mock<any, any, any>;
+    saveChat: jest.Mock<any, any, any>;
   };
   chatMock: Either<Error, Chat>;
 };
@@ -21,7 +23,11 @@ describe("testing chat completion use case", () => {
   let makeSut: () => SutTypes;
   beforeEach(() => {
     makeSut = () => {
-      const chatGateway = { findChatById: jest.fn() };
+      const chatGateway = {
+        findChatById: jest.fn(),
+        createChat: jest.fn(),
+        saveChat: jest.fn(),
+      };
       const openAiClientMock = {} as OpenAIApi;
       const sut = new ChatCompletionUseCase(chatGateway, openAiClientMock);
       const chatConfigMock: ChatCompletionConfigInputDTO = {
