@@ -3,18 +3,16 @@ import { Chat } from "../../domain/entity/Chat";
 import { Message } from "../../domain/entity/Message";
 import { Model } from "../../domain/entity/Model";
 import { Either, left, right } from "../../shared/either";
+import { ChatCompletionConfigInputDTO } from "./ChatCompletionDTO";
 import {
-  ChatCompletionConfigInputDTO,
   ChatCompletionUseCase,
-} from "./ChatCompletion";
+} from "./ChatCompletionUseCase";
 
 type SutTypes = {
   sut: ChatCompletionUseCase;
   chatConfigMock: ChatCompletionConfigInputDTO;
-  chatGateway: {
-    createChat: jest.Mock<any, any, any>;
+  chatRepository: {
     findChatById: jest.Mock<any, any, any>;
-    saveChat: jest.Mock<any, any, any>;
   };
   chatMock: Either<Error, Chat>;
 };
@@ -23,13 +21,13 @@ describe("testing chat completion use case", () => {
   let makeSut: () => SutTypes;
   beforeEach(() => {
     makeSut = () => {
-      const chatGateway = {
+      const chatRepository = {
         findChatById: jest.fn(),
         createChat: jest.fn(),
         saveChat: jest.fn(),
       };
       const openAiClientMock = {} as OpenAIApi;
-      const sut = new ChatCompletionUseCase(chatGateway, openAiClientMock);
+      const sut = new ChatCompletionUseCase(chatRepository, openAiClientMock);
       const chatConfigMock: ChatCompletionConfigInputDTO = {
         temperature: 0.75,
         topP: 0.8,
@@ -66,7 +64,7 @@ describe("testing chat completion use case", () => {
       return {
         sut,
         chatConfigMock,
-        chatGateway,
+        chatRepository,
         chatMock,
       };
     };
@@ -76,13 +74,13 @@ describe("testing chat completion use case", () => {
     jest.restoreAllMocks();
   });
 
-  it("needs to throw error when something goes wrong ", () => {
-    const { chatConfigMock, sut, chatGateway } = makeSut();
+  it("needs to throw error when something goes wrong", async () => {
+    const { chatConfigMock, sut, chatRepository } = makeSut();
 
-    chatGateway.findChatById.mockReturnValue(
+    chatRepository.findChatById.mockReturnValue(
       left(new Error("error fetching existing chat"))
     );
-    const chatCompletion = sut.execute({
+    const chatCompletion = await sut.execute({
       chatId: "uuid",
       userId: "uuid",
       userMessage: "test",
@@ -94,12 +92,12 @@ describe("testing chat completion use case", () => {
     );
   });
 
-  it("should throw error when creating initial message on new chat when chat not found", () => {
-    const { chatConfigMock, sut, chatGateway } = makeSut();
+  it("should throw error when creating initial message on new chat when chat not found", async () => {
+    const { chatConfigMock, sut, chatRepository } = makeSut();
 
-    chatGateway.findChatById.mockReturnValue(left(new Error("chat not found")));
+    chatRepository.findChatById.mockReturnValue(left(new Error("chat not found")));
 
-    const chatCompletion = sut.execute({
+    const chatCompletion = await sut.execute({
       chatId: "uuid",
       userId: "uuid",
       userMessage: "test",
@@ -141,12 +139,12 @@ describe("testing chat completion use case", () => {
     );
   });
 
-  it("should throw error when creating a new chat when chat not found", () => {
-    const { chatConfigMock, sut, chatGateway } = makeSut();
+  it("should throw error when creating a new chat when chat not found", async () => {
+    const { chatConfigMock, sut, chatRepository } = makeSut();
 
-    chatGateway.findChatById.mockReturnValue(left(new Error("chat not found")));
+    chatRepository.findChatById.mockReturnValue(left(new Error("chat not found")));
 
-    const chatCompletion = sut.execute({
+    const chatCompletion = await sut.execute({
       chatId: "uuid",
       userId: "",
       userMessage: "test",
@@ -172,16 +170,16 @@ describe("testing chat completion use case", () => {
     );
   });
 
-  it("should throw an error creating user message if chat was found", () => {
-    const { chatConfigMock, sut, chatGateway, chatMock } = makeSut();
+  it("should throw an error creating user message if chat was found", async () => {
+    const { chatConfigMock, sut, chatRepository, chatMock } = makeSut();
 
-    chatGateway.findChatById.mockReturnValue(chatMock);
+    chatRepository.findChatById.mockReturnValue(chatMock);
 
     const messageCreateSpy = jest
       .spyOn(Message, "create")
       .mockReturnValue(left(new Error("content is empty")));
 
-    const result = sut.execute({
+    const result = await sut.execute({
       chatId: "uuid",
       userId: "uuid",
       userMessage: "",
@@ -197,10 +195,10 @@ describe("testing chat completion use case", () => {
     });
   });
 
-  it("should throw an error when adding new message in a new chat", () => {
-    const { chatConfigMock, sut, chatGateway, chatMock } = makeSut();
+  it("should throw an error when adding new message in a new chat", async () => {
+    const { chatConfigMock, sut, chatRepository, chatMock } = makeSut();
 
-    chatGateway.findChatById.mockReturnValue(chatMock);
+    chatRepository.findChatById.mockReturnValue(chatMock);
 
     const addMessageSpy = jest
       .spyOn(sut, "addMessageOnChat")
@@ -208,7 +206,7 @@ describe("testing chat completion use case", () => {
         left(new Error("chat is ended, no more messages allowed"))
       );
 
-    const result = sut.execute({
+    const result = await sut.execute({
       chatId: "uuid",
       userId: "uuid",
       userMessage: "test",
@@ -239,16 +237,16 @@ describe("testing chat completion use case", () => {
     expect(chat.isRight).toBeTruthy();
   });
 
-  it("should return the expected chat when creating a new one", () => {
-    const { chatConfigMock, sut, chatGateway, chatMock } = makeSut();
+  it("should return the expected chat when creating a new one", async () => {
+    const { chatConfigMock, sut, chatRepository, chatMock } = makeSut();
 
-    chatGateway.findChatById.mockReturnValue(left(new Error("chat not found")));
+    chatRepository.findChatById.mockReturnValue(left(new Error("chat not found")));
 
     jest
       .spyOn(sut, "createNewChat")
       .mockReturnValue(right(chatMock.value as Chat));
 
-    sut.execute({
+    await sut.execute({
       chatId: "uuid",
       userId: "uuid",
       userMessage: "test",
@@ -259,14 +257,14 @@ describe("testing chat completion use case", () => {
     expect(sut.createNewChat).toHaveReturnedWith(right(chatMock.value as Chat));
   });
 
-  it("should return the chat completion", () => {
-    const { chatConfigMock, sut, chatGateway, chatMock } = makeSut();
+  it("should return the chat completion", async () => {
+    const { chatConfigMock, sut, chatRepository, chatMock } = makeSut();
 
-    chatGateway.findChatById.mockReturnValue(chatMock);
+    chatRepository.findChatById.mockReturnValue(chatMock);
 
     const chatId = "511022dc-6e6b-4c7a-8af9-17f600c01c2c";
     const userId = "34687268-e732-4e78-82af-c1e27da38fb3";
-    const chatCompletion = sut.execute({
+    const chatCompletion = await sut.execute({
       chatId,
       userId,
       userMessage: "test",

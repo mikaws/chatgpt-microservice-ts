@@ -1,49 +1,24 @@
-import { ChatGateway } from "../../domain/gateway/ChatGateway";
+import { ChatRepository } from "../repository/ChatRepository";
 import { OpenAIApi } from "openai";
 import { Either, left, right } from "../../shared/either";
 import { Chat, TChatConfig } from "../../domain/entity/Chat";
 import { Model } from "../../domain/entity/Model";
 import { Message } from "../../domain/entity/Message";
-
-export type ChatCompletionConfigInputDTO = {
-  model: string;
-  modelMaxTokens: number;
-  temperature: number;
-  topP: number;
-  n: number;
-  stop: Array<string>;
-  maxTokens: number;
-  presencePenalty: number;
-  frequencyPenalty: number;
-  initialSystemMessage: string;
-};
-
-export type ChatCompletionInputDTO = {
-  chatId: string;
-  userId: string;
-  userMessage: string;
-  config: ChatCompletionConfigInputDTO;
-};
-
-export type ChatCompletionOutputDTO = {
-  chatId: string;
-  userId: string;
-  content: string;
-};
+import { ChatCompletionInputDTO, ChatCompletionOutputDTO } from "./ChatCompletionDTO";
 
 export class ChatCompletionUseCase {
-  readonly chatGateway: ChatGateway;
+  readonly chatRepository: ChatRepository;
   readonly openAiClient: OpenAIApi;
 
-  constructor(chatGateway: ChatGateway, openAiClient: OpenAIApi) {
-    this.chatGateway = chatGateway;
+  constructor(chatRepository: ChatRepository, openAiClient: OpenAIApi) {
+    this.chatRepository = chatRepository;
     this.openAiClient = openAiClient;
   }
 
-  execute(
+  async execute(
     input: ChatCompletionInputDTO
-  ): Either<Error, ChatCompletionOutputDTO> {
-    let chatOrError = this.chatGateway.findChatById(input.chatId);
+  ): Promise<Either<Error, ChatCompletionOutputDTO>> {
+    let chatOrError = this.chatRepository.findChatById(input.chatId);
     let chat: Chat;
     let err: Error;
 

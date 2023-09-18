@@ -45,7 +45,7 @@ export class Chat {
     return this._tokenUsage;
   }
 
-  private constructor({
+  constructor({
     id,
     userId,
     initialSystemMessage,
