@@ -1,12 +1,7 @@
-import { Chat } from "../entity/Chat";
-import { Model } from "../entity/Model";
-import { Message } from "../entity/Message";
-import { Either } from "../../shared/either";
 import { OpenAIGateway } from "./OpenAIGateway";
 import { InMemoryOpenAIGateway } from "./InMemoryOpenAIGateway";
-import { CreateChatCompletionRequest } from "./models/OpenAIRequest";
-import { ChatCompletionOutputDTO } from "../usecase/ChatCompletionDTO";
-import { ChatCompletionResponseMessage, CreateChatCompletionResponse } from "./models/OpenAIResponse";
+import { ChatCompletionRequest } from "./models/OpenAIRequests";
+import { ChatCompletionResponse } from "./models/OpenAIResponses";
 
 type SutTypes = {
   sut: OpenAIGateway;
@@ -23,7 +18,7 @@ describe("InMemoryChatRepository", () => {
 
   test("createChatCompletion should return a valid response", async () => {
     const { sut } = makeSut();
-    const chatRequest: CreateChatCompletionRequest = {
+    const chatRequest: ChatCompletionRequest = {
       model: "gpt-4",
       messages: [
         {
@@ -40,27 +35,20 @@ describe("InMemoryChatRepository", () => {
     };
     const res = await sut.createChatCompletion(chatRequest);
     expect(res.isRight()).toBe(true);
-    const chatCompletion = res.value as CreateChatCompletionResponse;
+    const chatCompletion = res.value as ChatCompletionResponse;
     expect(chatCompletion).toEqual({
-        id: "uuid",
-        object: "any",
-        created: 1,
-        model: chatRequest.model,
-        usage: {
-          completion_tokens: 1,
-          total_tokens: 5,
-          prompt_tokens: 2,
-        },
-        choices: [
-          {
-            index: 1,
-            finish_reason: "ended",
-            message: {
-              content: "Hello. How can I help you?",
-              role: "assistant",
-            },
-          },
-        ],
-      });
+      id: "uuid",
+      model: chatRequest.model,
+      usage: {
+        completion_tokens: 1,
+        total_tokens: 5,
+        prompt_tokens: 2,
+      },
+      finish_reason: "ended",
+      message: {
+        content: "Hello. How can I help you?",
+        role: "assistant",
+      },
+    } as ChatCompletionResponse);
   });
 });

@@ -177,4 +177,77 @@ describe("testing chat completion use case", () => {
     });
     expect(createNewChat).toHaveBeenCalledTimes(0);
   });
+
+  it("should throw an error when createChatCompletion has error", async () => {
+    const { chaConfigInput, sut } = makeSut();
+    jest
+      .spyOn(sut.openAiGateway, "createChatCompletion")
+      .mockReturnValue(
+        new Promise((resolve) =>
+          resolve(left(new Error("error processing the request")))
+        )
+      );
+    const chatId = "uuid";
+    const userId = "uuid";
+    const err = await sut.execute({
+      chatId,
+      userId,
+      userMessage: "test",
+      config: chaConfigInput,
+    });
+    expect(err).toEqual(
+      left(new Error("error openai: error processing the request"))
+    );
+  });
+
+  it("should return the chat completion ", async () => {
+    const { chaConfigInput, sut, fakeChat } = makeSut();
+    const chatCompletion = await sut.execute({
+      chatId: fakeChat.id,
+      userId: "uuid",
+      userMessage: "test",
+      config: chaConfigInput,
+    });
+    expect(chatCompletion).toEqual(
+      right({
+        chatId: fakeChat.id,
+        content: "Hello. How can I help you?",
+        userId: "uuid",
+      })
+    );
+  });
+
+  // it("should return the expected chat when creating a new one", async () => {
+  //   const { chaConfigInput, sut, fakeChat } = makeSut();
+  //   jest
+  //     .spyOn(sut, "createNewChat")
+  //     .mockReturnValue(right(fakeChat.value as Chat));
+  //   await sut.execute({
+  //     chatId: "",
+  //     userId: "uuid",
+  //     userMessage: "test",
+  //     config: chaConfigInput,
+  //   });
+  //   expect(sut.createNewChat).toHaveBeenCalledTimes(1);
+  //   expect(sut.createNewChat).toHaveReturnedWith(right(fakeChat.value as Chat));
+  // });
+
+  // it("should return the chat completion", async () => {
+  //   const { chaConfigInput, sut, fakeChat } = makeSut();
+  //   const chatId = "511022dc-6e6b-4c7a-8af9-17f600c01c2c";
+  //   const userId = "34687268-e732-4e78-82af-c1e27da38fb3";
+  //   const chatCompletion = await sut.execute({
+  //     chatId,
+  //     userId,
+  //     userMessage: "test",
+  //     config: chaConfigInput,
+  //   });
+  //   expect(chatCompletion).toEqual(
+  //     right({
+  //       chatId,
+  //       content: "mock",
+  //       userId,
+  //     })
+  //   );
+  // });
 });
