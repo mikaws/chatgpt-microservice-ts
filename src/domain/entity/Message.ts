@@ -43,7 +43,6 @@ export class Message {
     model: Model
   ): Either<Error, Message> {
     const totalTokens = encode(content).length;
-
     const msg = new Message({
       id: uuid.v4(),
       role,

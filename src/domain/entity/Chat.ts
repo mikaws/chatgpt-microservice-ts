@@ -45,7 +45,7 @@ export class Chat {
     return this._tokenUsage;
   }
 
-  private constructor({
+  constructor({
     id,
     userId,
     initialSystemMessage,
@@ -136,7 +136,6 @@ export class Chat {
         this._tokenUsage -= oldestMessage.tokens;
       }
     }
-
     return right(m);
   }
 
