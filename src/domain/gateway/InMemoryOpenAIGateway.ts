@@ -1,37 +1,30 @@
 import { Either, right } from "../../shared/either";
-import { CreateChatCompletionRequest } from "./models/OpenAIRequest";
-import { CreateChatCompletionResponse } from "./models/OpenAIResponse";
+import { ChatCompletionRequest } from "./models/OpenAIRequests";
+import { ChatCompletionResponse } from "./models/OpenAIResponses";
 import { OpenAIGateway } from "./OpenAIGateway";
 
 export class InMemoryOpenAIGateway implements OpenAIGateway {
   async createChatCompletion(
-    createChatCompletionRequest: CreateChatCompletionRequest
-  ): Promise<Either<Error, CreateChatCompletionResponse>> {
+    createChatCompletionRequest: ChatCompletionRequest
+  ): Promise<Either<Error, ChatCompletionResponse>> {
     const createChatCompletionResponse = await new Promise((resolve) => {
       return resolve(createChatCompletionRequest);
     }).then((res: unknown) => {
-      const obj = res as CreateChatCompletionRequest;
+      const obj = res as ChatCompletionRequest;
       return {
         id: "uuid",
-        object: "any",
-        created: 1,
         model: obj.model,
+        finish_reason: "ended",
         usage: {
-          completion_tokens: 1,
-          total_tokens: 5,
           prompt_tokens: 2,
+          total_tokens: 5,
+          completion_tokens: 1,
         },
-        choices: [
-          {
-            index: 1,
-            finish_reason: "ended",
-            message: {
-              content: "Hello. How can I help you?",
-              role: "assistant",
-            },
-          },
-        ],
-      } as CreateChatCompletionResponse;
+        message: {
+          content: "Hello. How can I help you?",
+          role: "assistant",
+        },
+      } as ChatCompletionResponse;
     });
     return right(createChatCompletionResponse);
   }

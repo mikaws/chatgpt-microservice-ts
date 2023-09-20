@@ -1,1 +1,1 @@
-export type ChatCompletionMessageRoleEnum = "system" | "user" | "assistant";
+export type ChatCompletionMessageRole = "system" | "user" | "assistant";

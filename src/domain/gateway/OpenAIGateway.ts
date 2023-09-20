@@ -1,9 +1,9 @@
 import { Either } from "../../shared/either";
-import { CreateChatCompletionRequest } from "./models/OpenAIRequest";
-import { CreateChatCompletionResponse } from "./models/OpenAIResponse";
+import { ChatCompletionRequest } from "./models/OpenAIRequests";
+import { ChatCompletionResponse } from "./models/OpenAIResponses";
 
 export type OpenAIGateway = {
   createChatCompletion(
-    createChatCompletionRequest: CreateChatCompletionRequest
-  ): Promise<Either<Error, CreateChatCompletionResponse>>;
+    createChatCompletionRequest: ChatCompletionRequest
+  ): Promise<Either<Error, ChatCompletionResponse>>;
 };

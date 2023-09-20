@@ -1,4 +1,3 @@
-import { ChatCompletionRequestMessage, OpenAIApi } from "openai";
 import { Either, left, right } from "../../shared/either";
 import { Chat, TChatConfig } from "../../domain/entity/Chat";
 import { Model } from "../../domain/entity/Model";
@@ -9,6 +8,7 @@ import {
 } from "./ChatCompletionDTO";
 import { ChatRepository } from "../repository/ChatRepository";
 import { OpenAIGateway } from "../gateway/OpenAIGateway";
+import { ChatCompletionMessage } from "../gateway/models/OpenAIResponses";
 
 export class ChatCompletionUseCase {
   readonly chatRepository: ChatRepository;
@@ -51,9 +51,63 @@ export class ChatCompletionUseCase {
       err = messageAddedOrError.value;
       return left(new Error("error adding new message: " + err.message));
     }
+    const messages: ChatCompletionMessage[] = chat.messages.map(
+      (message: Message): ChatCompletionMessage => {
+        return {
+          content: message.content,
+          role: message.role,
+        } as ChatCompletionMessage;
+      }
+    );
+    const chatCompletionOrError = await this.openAiGateway.createChatCompletion(
+      {
+        model: chat.config.model.name,
+        messages: messages,
+        max_tokens: chat.config.maxTokens,
+        temperature: chat.config.temperature,
+        top_p: chat.config.topP,
+        presence_penalty: chat.config.presencePenalty,
+        frequency_penalty: chat.config.frequencyPenalty,
+        stop: chat.config.stop,
+      }
+    );
+    if (chatCompletionOrError.isLeft()) {
+      err = chatCompletionOrError.value;
+      return left(new Error("error openai: " + err.message));
+    }
+
+    const chatCompletion = chatCompletionOrError.value;
+    /*const content = openAiRes.choices[0].message?.content ?? "";
+    const assistanceMessageOrError = Message.create(
+      "assistant",
+      content,
+      chat.config.model
+    );
+    if (assistanceMessageOrError.isLeft()) {
+      err = assistanceMessageOrError.value;
+      return left(new Error(err.message));
+    }
+    const assistanceMessage = assistanceMessageOrError.value;
+    const assistanceMessageAddedOrError = chat.addMessage(assistanceMessage);
+    if (assistanceMessageAddedOrError.isLeft()) {
+      err = assistanceMessageAddedOrError.value;
+      return left(new Error(err.message));
+    }
+    const savedChatOrError = await this.chatRepository.saveChat(chat);
+    if (savedChatOrError.isLeft()) {
+      err = savedChatOrError.value;
+      return left(new Error(err.message));
+    }
+    const savedChat = savedChatOrError.value;
+    return right({
+      chatId: savedChat.id,
+      content: content,
+      userId: savedChat.userId,
+    });
+    */
     return right({
       chatId: chat.id,
-      content: "any",
+      content: chatCompletion.message.content,
       userId: chat.userId,
     });
   }
