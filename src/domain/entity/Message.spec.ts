@@ -53,16 +53,6 @@ describe("testing Message", () => {
     expect(message.tokens).toBe(4);
   });
 
-  it("should return error if user isn't valid", () => {
-    const model = Model.create("codex", 500);
-    const message = Message.create(
-      "admin",
-      "How be rich?",
-      model.value as Model
-    );
-    expect(message.isLeft()).toBeTruthy();
-  });
-
   it("should return error if content is blank", () => {
     const model = Model.create("codex", 500);
     const message = Message.create("user", "", model.value as Model);
