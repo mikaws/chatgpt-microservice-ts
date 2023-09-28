@@ -75,9 +75,8 @@ export class ChatCompletionUseCase {
       err = chatCompletionOrError.value;
       return left(new Error("error openai: " + err.message));
     }
-
     const chatCompletion = chatCompletionOrError.value;
-    /*const content = openAiRes.choices[0].message?.content ?? "";
+    const content = chatCompletion.message.content;
     const assistanceMessageOrError = Message.create(
       "assistant",
       content,
@@ -88,7 +87,10 @@ export class ChatCompletionUseCase {
       return left(new Error(err.message));
     }
     const assistanceMessage = assistanceMessageOrError.value;
-    const assistanceMessageAddedOrError = chat.addMessage(assistanceMessage);
+    const assistanceMessageAddedOrError = this.addMessageOnChat(
+      chat,
+      assistanceMessage
+    );
     if (assistanceMessageAddedOrError.isLeft()) {
       err = assistanceMessageAddedOrError.value;
       return left(new Error(err.message));
@@ -103,12 +105,6 @@ export class ChatCompletionUseCase {
       chatId: savedChat.id,
       content: content,
       userId: savedChat.userId,
-    });
-    */
-    return right({
-      chatId: chat.id,
-      content: chatCompletion.message.content,
-      userId: chat.userId,
     });
   }
 
