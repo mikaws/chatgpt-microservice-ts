@@ -6,11 +6,14 @@ import { ChatCompletionConfigInputDTO } from "./ChatCompletionDTO";
 import { ChatCompletionUseCase } from "./ChatCompletionUseCase";
 import { InMemoryOpenAIGateway } from "../gateway/InMemoryOpenAIGateway";
 import { InMemoryChatRepository } from "../repository/InMemoryChatRepository";
+import { ChatCompletionResponse } from "../gateway/models/OpenAIResponses";
 
 type SutTypes = {
   sut: ChatCompletionUseCase;
   chaConfigInput: ChatCompletionConfigInputDTO;
   fakeChat: Chat;
+  fakeModel: Model;
+  fakeMessage: Message;
 };
 
 describe("testing chat completion use case", () => {
@@ -33,17 +36,19 @@ describe("testing chat completion use case", () => {
         initialSystemMessage: "hello",
         modelMaxTokens: 500,
       };
-      const model = Model.create(chaConfigInput.model, chaConfigInput.maxTokens)
-        .value as Model;
-      const message = Message.create(
+      const fakeModel = Model.create(
+        chaConfigInput.model,
+        chaConfigInput.maxTokens
+      ).value as Model;
+      const fakeMessage = Message.create(
         "system",
         chaConfigInput.initialSystemMessage,
-        model
+        fakeModel
       ).value as Message;
-      const fakeChat = Chat.create("uuid", message, {
+      const fakeChat = Chat.create("uuid", fakeMessage, {
         frequencyPenalty: chaConfigInput.frequencyPenalty,
         maxTokens: chaConfigInput.maxTokens,
-        model,
+        model: fakeModel,
         n: chaConfigInput.n,
         presencePenalty: chaConfigInput.presencePenalty,
         stop: chaConfigInput.stop,
@@ -55,6 +60,8 @@ describe("testing chat completion use case", () => {
         sut,
         chaConfigInput,
         fakeChat,
+        fakeModel,
+        fakeMessage,
       };
     };
   });
@@ -130,6 +137,24 @@ describe("testing chat completion use case", () => {
     );
   });
 
+  it("should throw an error when trying to append a message when the chat is ended", async () => {
+    const { chaConfigInput, sut, fakeChat } = makeSut();
+    fakeChat.end();
+    const err = await sut.execute({
+      chatId: fakeChat.id,
+      userId: "uuid",
+      userMessage: "test",
+      config: chaConfigInput,
+    });
+    expect(err).toEqual(
+      left(
+        new Error(
+          "error adding new message: chat is ended, no more messages allowed"
+        )
+      )
+    );
+  });
+
   it("should throw an error creating user message if chat was found", async () => {
     const { chaConfigInput, sut } = makeSut();
     const result = await sut.execute({
@@ -141,29 +166,6 @@ describe("testing chat completion use case", () => {
     expect(result).toEqual(
       left(new Error("error creating user message: content is empty"))
     );
-  });
-
-  it("should throw an error when adding new message in a new chat", async () => {
-    const { chaConfigInput, sut } = makeSut();
-    const addMessageSpy = jest
-      .spyOn(sut, "addMessageOnChat")
-      .mockReturnValue(
-        left(new Error("chat is ended, no more messages allowed"))
-      );
-    const result = await sut.execute({
-      chatId: "uuid",
-      userId: "uuid",
-      userMessage: "test",
-      config: chaConfigInput,
-    });
-    expect(result).toEqual(
-      left(
-        new Error(
-          "error adding new message: chat is ended, no more messages allowed"
-        )
-      )
-    );
-    expect(addMessageSpy).toHaveBeenCalledTimes(1);
   });
 
   it("should not create a new chat if the chat already exists", async () => {
@@ -200,6 +202,78 @@ describe("testing chat completion use case", () => {
     );
   });
 
+  it("should throw an error when creating the assistent message instance has error", async () => {
+    const { chaConfigInput, sut } = makeSut();
+    jest
+      .spyOn(sut.chatRepository, "saveChat")
+      .mockReturnValue(
+        new Promise((resolve) => resolve(left(new Error("err saving chat"))))
+      );
+    const chatId = "uuid";
+    const userId = "uuid";
+    const err = await sut.execute({
+      chatId,
+      userId,
+      userMessage: "test",
+      config: chaConfigInput,
+    });
+    expect(err).toEqual(left(new Error("err saving chat")));
+  });
+
+  it("should throw an error when appending assistent message has error", async () => {
+    const { chaConfigInput, sut, fakeChat } = makeSut();
+    jest.spyOn(sut.openAiGateway, "createChatCompletion").mockReturnValue(
+      new Promise((resolve) =>
+        resolve(
+          right({
+            id: fakeChat.id,
+            message: {
+              content: "",
+              role: "assistant",
+            },
+            model: "gpt-3.5",
+          })
+        )
+      )
+    );
+    const userId = "uuid";
+    const err = await sut.execute({
+      chatId: fakeChat.id,
+      userId,
+      userMessage: "test",
+      config: chaConfigInput,
+    });
+    expect(err).toEqual(left(new Error("content is empty")));
+  });
+
+  it("should throw an error when trying to append a message when the chat is ended", async () => {
+    const { chaConfigInput, sut, fakeChat, fakeMessage } = makeSut();
+    let addMessageOnChatBehavior = 1;
+    jest.spyOn(sut, "addMessageOnChat").mockImplementation(() => {
+      if (addMessageOnChatBehavior === 1) {
+        addMessageOnChatBehavior = 2;
+        return right(fakeMessage);
+      } else {
+        fakeChat.end();
+        return left(new Error("error adding new message: chat is ended, no more messages allowed"));
+      }
+    });
+    const err = await sut.execute({
+      chatId: fakeChat.id,
+      userId: "uuid",
+      userMessage: "test",
+      config: chaConfigInput,
+    });
+    expect(err).toEqual(
+      left(
+        new Error(
+          "error adding new message: chat is ended, no more messages allowed"
+        )
+      )
+    );
+    expect(sut.addMessageOnChat).toHaveBeenCalledTimes(2);
+  });
+
   it("should return the chat completion ", async () => {
     const { chaConfigInput, sut, fakeChat } = makeSut();
     const chatCompletion = await sut.execute({
@@ -216,38 +290,4 @@ describe("testing chat completion use case", () => {
       })
     );
   });
-
-  // it("should return the expected chat when creating a new one", async () => {
-  //   const { chaConfigInput, sut, fakeChat } = makeSut();
-  //   jest
-  //     .spyOn(sut, "createNewChat")
-  //     .mockReturnValue(right(fakeChat.value as Chat));
-  //   await sut.execute({
-  //     chatId: "",
-  //     userId: "uuid",
-  //     userMessage: "test",
-  //     config: chaConfigInput,
-  //   });
-  //   expect(sut.createNewChat).toHaveBeenCalledTimes(1);
-  //   expect(sut.createNewChat).toHaveReturnedWith(right(fakeChat.value as Chat));
-  // });
-
-  // it("should return the chat completion", async () => {
-  //   const { chaConfigInput, sut, fakeChat } = makeSut();
-  //   const chatId = "511022dc-6e6b-4c7a-8af9-17f600c01c2c";
-  //   const userId = "34687268-e732-4e78-82af-c1e27da38fb3";
-  //   const chatCompletion = await sut.execute({
-  //     chatId,
-  //     userId,
-  //     userMessage: "test",
-  //     config: chaConfigInput,
-  //   });
-  //   expect(chatCompletion).toEqual(
-  //     right({
-  //       chatId,
-  //       content: "mock",
-  //       userId,
-  //     })
-  //   );
-  // });
 });
