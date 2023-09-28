@@ -5,7 +5,7 @@ import { Either, left, right } from "../../shared/either";
 
 type TMessage = {
   id: string;
-  role: string;
+  role: "user" | "system" | "assistant";
   content: string;
   model: Model;
   tokens: number;
@@ -14,7 +14,7 @@ type TMessage = {
 
 export class Message {
   readonly id: string;
-  readonly role: string;
+  readonly role: "user" | "system" | "assistant";
   readonly content: string;
   readonly model: Model;
   readonly tokens: number;
@@ -38,7 +38,7 @@ export class Message {
   }
 
   public static create(
-    role: string,
+    role: "user" | "system" | "assistant",
     content: string,
     model: Model
   ): Either<Error, Message> {
@@ -59,9 +59,6 @@ export class Message {
   }
 
   private validate(m: Message): Either<Error, Message> {
-    if (m.role !== "user" && m.role !== "system" && m.role !== "bot") {
-      return left(new Error("invalid role"));
-    }
     if (m.content === "") {
       return left(new Error("content is empty"));
     }
