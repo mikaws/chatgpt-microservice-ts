@@ -1,12 +1,11 @@
 import { Chat } from "../../domain/entity/Chat";
 import { Message } from "../../domain/entity/Message";
 import { Model } from "../../domain/entity/Model";
-import { Either, left, right } from "../../shared/either";
+import { left, right } from "../../shared/either";
 import { ChatCompletionConfigInputDTO } from "./ChatCompletionDTO";
 import { ChatCompletionUseCase } from "./ChatCompletionUseCase";
 import { InMemoryOpenAIGateway } from "../gateway/InMemoryOpenAIGateway";
 import { InMemoryChatRepository } from "../repository/InMemoryChatRepository";
-import { ChatCompletionResponse } from "../gateway/models/OpenAIResponses";
 
 type SutTypes = {
   sut: ChatCompletionUseCase;
@@ -70,9 +69,9 @@ describe("testing chat completion use case", () => {
     jest.restoreAllMocks();
   });
 
-  it("should throw error when creating model with invalid maxTokens on new chat", () => {
+  it("should throw error when creating model with invalid maxTokens on new chat", async () => {
     const { chaConfigInput, sut } = makeSut();
-    const newChat = sut.createNewChat({
+    const newChat = await sut.createNewChat({
       chatId: "uuid",
       userId: "uuid",
       userMessage: "test",
@@ -98,9 +97,9 @@ describe("testing chat completion use case", () => {
     );
   });
 
-  it("should throw error when creating initial message without content on new chat", () => {
+  it("should throw error when creating initial message without content on new chat", async () => {
     const { chaConfigInput, sut } = makeSut();
-    const newChat = sut.createNewChat({
+    const newChat = await sut.createNewChat({
       chatId: "uuid",
       userId: "uuid",
       userMessage: "test",
@@ -124,9 +123,9 @@ describe("testing chat completion use case", () => {
     );
   });
 
-  it("should throw error when creating a new chat", () => {
+  it("should throw error when creating a new chat", async () => {
     const { chaConfigInput, sut } = makeSut();
-    const newChat = sut.createNewChat({
+    const newChat = await sut.createNewChat({
       chatId: "uuid",
       userId: "",
       userMessage: "test",
@@ -135,6 +134,24 @@ describe("testing chat completion use case", () => {
     expect(newChat).toEqual(
       left(new Error("error creating new chat: user id is empty"))
     );
+  });
+
+  it("should throw error when saving a new chat that already exists", async () => {
+    const { chaConfigInput, sut } = makeSut();
+    jest
+      .spyOn(sut.chatRepository, "createChat")
+      .mockReturnValue(
+        new Promise((resolve) =>
+          resolve(left(new Error("chat already exists")))
+        )
+      );
+    const newChat = await sut.createNewChat({
+      chatId: "uuid",
+      userId: "uuid",
+      userMessage: "test",
+      config: chaConfigInput,
+    });
+    expect(newChat).toEqual(left(new Error("error saving new chat: chat already exists")));
   });
 
   it("should throw an error when trying to append a message when the chat is ended", async () => {
@@ -156,9 +173,9 @@ describe("testing chat completion use case", () => {
   });
 
   it("should throw an error creating user message if chat was found", async () => {
-    const { chaConfigInput, sut } = makeSut();
+    const { chaConfigInput, sut, fakeChat } = makeSut();
     const result = await sut.execute({
-      chatId: "",
+      chatId: fakeChat.id,
       userId: "uuid",
       userMessage: "",
       config: chaConfigInput,
@@ -180,8 +197,8 @@ describe("testing chat completion use case", () => {
     expect(createNewChat).toHaveBeenCalledTimes(0);
   });
 
-  it("should throw an error when createChatCompletion has error", async () => {
-    const { chaConfigInput, sut } = makeSut();
+  it("should throw an error when openai createChatCompletion has error", async () => {
+    const { chaConfigInput, sut, fakeChat } = makeSut();
     jest
       .spyOn(sut.openAiGateway, "createChatCompletion")
       .mockReturnValue(
@@ -189,11 +206,9 @@ describe("testing chat completion use case", () => {
           resolve(left(new Error("error processing the request")))
         )
       );
-    const chatId = "uuid";
-    const userId = "uuid";
     const err = await sut.execute({
-      chatId,
-      userId,
+      chatId: 'uuid',
+      userId: 'uuid',
       userMessage: "test",
       config: chaConfigInput,
     });
@@ -203,17 +218,15 @@ describe("testing chat completion use case", () => {
   });
 
   it("should throw an error when creating the assistent message instance has error", async () => {
-    const { chaConfigInput, sut } = makeSut();
+    const { chaConfigInput, sut, fakeChat } = makeSut();
     jest
       .spyOn(sut.chatRepository, "saveChat")
       .mockReturnValue(
         new Promise((resolve) => resolve(left(new Error("err saving chat"))))
       );
-    const chatId = "uuid";
-    const userId = "uuid";
     const err = await sut.execute({
-      chatId,
-      userId,
+      chatId: 'uuid',
+      userId: 'uuid',
       userMessage: "test",
       config: chaConfigInput,
     });
@@ -236,10 +249,9 @@ describe("testing chat completion use case", () => {
         )
       )
     );
-    const userId = "uuid";
     const err = await sut.execute({
       chatId: fakeChat.id,
-      userId,
+      userId: 'uuid',
       userMessage: "test",
       config: chaConfigInput,
     });
@@ -255,7 +267,11 @@ describe("testing chat completion use case", () => {
         return right(fakeMessage);
       } else {
         fakeChat.end();
-        return left(new Error("error adding new message: chat is ended, no more messages allowed"));
+        return left(
+          new Error(
+            "error adding new message: chat is ended, no more messages allowed"
+          )
+        );
       }
     });
     const err = await sut.execute({
