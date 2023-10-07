@@ -27,7 +27,7 @@ export class ChatCompletionUseCase {
     let err: Error;
     if (chatOrError.isLeft()) {
       err = chatOrError.value;
-      const newChatOrError = this.createNewChat(input);
+      const newChatOrError = await this.createNewChat(input);
       if (newChatOrError.isLeft()) {
         err = newChatOrError.value;
         return left(err);
@@ -112,7 +112,7 @@ export class ChatCompletionUseCase {
     return chat.addMessage(userMessage);
   }
 
-  createNewChat(input: ChatCompletionInputDTO): Either<Error, Chat> {
+  async createNewChat(input: ChatCompletionInputDTO): Promise<Either<Error, Chat>> {
     const model = Model.create(input.config.model, input.config.modelMaxTokens);
     let err: Error;
     if (model.isLeft()) {
@@ -145,6 +145,12 @@ export class ChatCompletionUseCase {
       return left(new Error("error creating new chat: " + err.message));
     }
     const chat = chatOrError.value;
+    const createdChatOrError = await this.chatRepository.createChat(chat);
+    if (createdChatOrError.isLeft()) {
+      err = createdChatOrError.value;
+      return left(new Error("error saving new chat: " + err.message));
+    }
+
     return right(chat);
   }
 }
