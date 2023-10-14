@@ -4,7 +4,7 @@ export class Model {
   readonly name: string;
   readonly maxTokens: number;
 
-  private constructor(name: string, maxTokens: number) {
+  constructor(name: string, maxTokens: number) {
     this.name = name;
     this.maxTokens = maxTokens;
     Object.freeze(this);

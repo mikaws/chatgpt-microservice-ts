@@ -3,7 +3,7 @@ import { Model } from "./Model";
 import { encode } from "gpt-3-encoder";
 import { Either, left, right } from "../../shared/either";
 
-type TMessage = {
+export type TMessage = {
   id: string;
   role: "user" | "system" | "assistant";
   content: string;
@@ -20,7 +20,7 @@ export class Message {
   readonly tokens: number;
   readonly createdAt: Date;
 
-  private constructor({
+  constructor({
     id,
     role,
     content,

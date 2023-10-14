@@ -15,22 +15,22 @@ export const postgreSQLDatabase: Database<Pool> = {
 
   async connect(dbConfig: DBConfig): Promise<void> {
     this.pool = new Pool(dbConfig);
-    await this.pool.connect();
   },
 
   async disconnect(): Promise<void> {
-    await this.pool.end();
-    console.log("Disconnected from PostgreSQL");
+    await this.pool
+      .end()
+      .then(() => console.info("Disconnected from PostgreSQL"));
   },
 
-  async createChat(chat: CreateChatParams): Promise<Either<Error, any>> {
+  async createChat(chat: CreateChatParams): Promise<Either<Error, any[]>> {
     const query = `
         INSERT INTO chats
         (id, user_id, initial_message_id, status, token_usage, model, model_max_tokens, temperature, top_p, n, stop, max_tokens, presence_penalty, frequency_penalty, created_at, updated_at)
         VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16);
       `;
     try {
-      const result: any = await this.pool.query(query, [
+      const result = await this.pool.query(query, [
         chat.ID,
         chat.UserID,
         chat.InitialMessageID,
@@ -48,13 +48,13 @@ export const postgreSQLDatabase: Database<Pool> = {
         chat.CreatedAt,
         chat.UpdatedAt,
       ]);
-      return right(result as any);
+      return right(result.rows);
     } catch (err: unknown) {
       return left(err as Error);
     }
   },
 
-  async addMessage(message: AddMessageParams): Promise<Either<Error, any>> {
+  async addMessage(message: AddMessageParams): Promise<Either<Error, any[]>> {
     const query = `
         INSERT INTO messages (id, chat_id, role, content, tokens, model, erased, order_msg, created_at)
         VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9);
@@ -71,17 +71,17 @@ export const postgreSQLDatabase: Database<Pool> = {
         message.OrderMsg,
         message.CreatedAt,
       ]);
-      return right(result as any);
+      return right(result.rows);
     } catch (err: unknown) {
       return left(err as Error);
     }
   },
 
-  async findChatByID(id: string): Promise<Either<Error, Chat | null>> {
+  async findChatByID(id: string): Promise<Either<Error, Chat | undefined>> {
     const query = "SELECT * FROM chats WHERE id = $1;";
     try {
       const result: QueryResult<Chat> = await this.pool.query(query, [id]);
-      return right(result?.rows[0] || null);
+      return right(result.rows[0]);
     } catch (err: unknown) {
       return left(err as Error);
     }
@@ -117,7 +117,7 @@ export const postgreSQLDatabase: Database<Pool> = {
     }
   },
 
-  async saveChat(params: SaveChatParams): Promise<Either<Error, any>> {
+  async saveChat(params: SaveChatParams): Promise<Either<Error, any[]>> {
     const query = `
         UPDATE chats
         SET user_id = $1,
@@ -154,27 +154,29 @@ export const postgreSQLDatabase: Database<Pool> = {
         params.UpdatedAt,
         params.ID,
       ]);
-      return right(result);
+      return right(result.rows);
     } catch (err: unknown) {
       return left(err as Error);
     }
   },
 
-  async deleteChatMessages(chatID: string): Promise<Either<Error, any>> {
+  async deleteChatMessages(chatID: string): Promise<Either<Error, any[]>> {
     const query = "DELETE FROM messages WHERE chat_id = $1;";
     try {
       const result = await this.pool.query(query, [chatID]);
-      return right(result);
+      return right(result.rows);
     } catch (err: unknown) {
       return left(err as Error);
     }
   },
 
-  async deleteErasedChatMessages(chatID: string): Promise<Either<Error, any>> {
+  async deleteErasedChatMessages(
+    chatID: string
+  ): Promise<Either<Error, any[]>> {
     const query = "DELETE FROM messages WHERE erased = true AND chat_id = $1;";
     try {
       const result = await this.pool.query(query, [chatID]);
-      return right(result);
+      return right(result.rows);
     } catch (err: unknown) {
       return left(err as Error);
     }
