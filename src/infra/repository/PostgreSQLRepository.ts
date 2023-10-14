@@ -23,7 +23,7 @@ export class PostgreSQLRepository implements ChatRepository {
       N: chat.config.n,
       PresencePenalty: chat.config.presencePenalty,
       Status: chat.status,
-      Stop: chat.config.stop[0],
+      Stop: chat.config.stop[0] ?? '',
       Temperature: chat.config.temperature,
       TokenUsage: chat.tokenUsage,
       TopP: chat.config.topP,
@@ -52,7 +52,7 @@ export class PostgreSQLRepository implements ChatRepository {
     );
     if (addedMessageOrError.isLeft()) {
       err = addedMessageOrError.value;
-      return left(new Error("error adding message in created chat: " + err));
+      return left(new Error("error saving message when creating chat: " + err));
     }
     return right(chat);
   }
