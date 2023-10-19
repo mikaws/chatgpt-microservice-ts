@@ -5,22 +5,22 @@ import { Either, left, right } from "../../shared/either";
 
 export type TMessage = {
   id: string;
-  role: "user" | "system" | "assistant";
+  role: string;
   content: string;
-  model: Model;
+  model: string;
   tokens: number;
   createdAt: Date;
 };
 
 export class Message {
   readonly id: string;
-  readonly role: "user" | "system" | "assistant";
+  readonly role: string;
   readonly content: string;
-  readonly model: Model;
+  readonly model: string;
   readonly tokens: number;
   readonly createdAt: Date;
 
-  constructor({
+  private constructor({
     id,
     role,
     content,
@@ -38,18 +38,20 @@ export class Message {
   }
 
   public static create(
-    role: "user" | "system" | "assistant",
+    role: string,
     content: string,
-    model: Model
+    model: Model,
+    id?: string,
+    createdAt?: Date
   ): Either<Error, Message> {
-    const totalTokens = encode(content).length;
+    const totalTokens = content ? encode(content).length : 0;
     const msg = new Message({
-      id: uuid.v4(),
+      id: id ?? uuid.v4(),
       role,
       content,
-      model,
+      model: model.name,
       tokens: totalTokens,
-      createdAt: new Date(),
+      createdAt: createdAt ?? new Date(),
     });
     const msgOrError = msg.validate(msg);
     if (msgOrError.isLeft()) {
@@ -59,8 +61,19 @@ export class Message {
   }
 
   private validate(m: Message): Either<Error, Message> {
+    if (m.id === "") {
+      return left(new Error("id is empty"));
+    }
+    if (!uuid.validate(m.id)) {
+      return left(new Error("id needs to be a valid uuid"));
+    }
     if (m.content === "") {
       return left(new Error("content is empty"));
+    }
+    if (m.role !== "system" && m.role !== "user" && m.role !== "assistant") {
+      return left(
+        new Error("role needs to be 'system', 'user' or 'assistant'")
+      );
     }
     return right(m);
   }
