@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+  postgres:
+    container_name: postgres-gpt
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: sysdba
+      POSTGRES_DB: adm
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./src/infra/sql/migrations:/docker-entrypoint-initdb.d/src/infra/sql/migrations
+
+volumes:
+  pg_data:
+
