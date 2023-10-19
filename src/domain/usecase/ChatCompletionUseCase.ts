@@ -95,7 +95,7 @@ export class ChatCompletionUseCase {
       err = assistanceMessageAddedOrError.value;
       return left(new Error(err.message));
     }
-    const savedChatOrError = await this.chatRepository.saveChat(chat);
+    const savedChatOrError = await this.chatRepository.updateChat(chat);
     if (savedChatOrError.isLeft()) {
       err = savedChatOrError.value;
       return left(new Error(err.message));
@@ -150,7 +150,6 @@ export class ChatCompletionUseCase {
       err = createdChatOrError.value;
       return left(new Error("error saving new chat: " + err.message));
     }
-
     return right(chat);
   }
 }

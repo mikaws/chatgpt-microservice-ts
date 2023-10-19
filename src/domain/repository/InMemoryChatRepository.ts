@@ -22,7 +22,7 @@ export class InMemoryChatRepository implements ChatRepository {
     return right(chat);
   }
 
-  async saveChat(chat: Chat): Promise<Either<Error, Chat>> {
+  async updateChat(chat: Chat): Promise<Either<Error, Chat>> {
     const chatIndex = this.chats.findIndex(
       (chatFromRepository) => chatFromRepository.id === chat.id
     );

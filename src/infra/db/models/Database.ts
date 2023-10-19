@@ -1,11 +1,11 @@
 import { Either } from "../../../shared/either";
 import {
   AddMessageParams,
-  Chat,
+  ChatDB,
   CreateChatParams,
   DBConfig,
-  Message,
-  SaveChatParams,
+  MessageDB,
+  UpdateChatParams,
 } from "./DatabaseModels";
 
 export interface Database<T> {
@@ -14,10 +14,10 @@ export interface Database<T> {
   disconnect(): Promise<void>;
   createChat(chat: CreateChatParams): Promise<Either<Error, any>>;
   addMessage(message: AddMessageParams): Promise<Either<Error, any>>;
-  findChatByID(id: string): Promise<Either<Error, Chat | undefined>>;
-  findMessagesByChatID(chatID: string): Promise<Either<Error, Message[]>>;
-  findErasedMessagesByChatID(chatID: string): Promise<Either<Error, Message[]>>;
-  saveChat(params: SaveChatParams): Promise<Either<Error, any>>;
-  deleteChatMessages(chatID: string): Promise<Either<Error, any>>;
-  deleteErasedChatMessages(chatID: string): Promise<Either<Error, any>>;
+  findChatById(chatId: string): Promise<Either<Error, ChatDB | undefined>>;
+  findMessagesByChatId(chatId: string): Promise<Either<Error, MessageDB[]>>;
+  findErasedMessagesByChatId(chatId: string): Promise<Either<Error, MessageDB[]>>;
+  updateChat(chat: UpdateChatParams): Promise<Either<Error, any>>;
+  deleteChatMessages(chatId: string): Promise<Either<Error, any>>;
+  deleteErasedChatMessages(chatId: string): Promise<Either<Error, any>>;
 }
