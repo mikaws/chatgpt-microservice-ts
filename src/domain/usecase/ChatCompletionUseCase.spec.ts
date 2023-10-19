@@ -9,7 +9,7 @@ import { InMemoryChatRepository } from "../repository/InMemoryChatRepository";
 
 type SutTypes = {
   sut: ChatCompletionUseCase;
-  chaConfigInput: ChatCompletionConfigInputDTO;
+  chatConfigInput: ChatCompletionConfigInputDTO;
   fakeChat: Chat;
   fakeModel: Model;
   fakeMessage: Message;
@@ -23,7 +23,7 @@ describe("testing chat completion use case", () => {
         new InMemoryChatRepository(),
         new InMemoryOpenAIGateway()
       );
-      const chaConfigInput: ChatCompletionConfigInputDTO = {
+      const chatConfigInput: ChatCompletionConfigInputDTO = {
         temperature: 0.75,
         topP: 0.8,
         n: 10,
@@ -36,28 +36,28 @@ describe("testing chat completion use case", () => {
         modelMaxTokens: 500,
       };
       const fakeModel = Model.create(
-        chaConfigInput.model,
-        chaConfigInput.maxTokens
+        chatConfigInput.model,
+        chatConfigInput.maxTokens
       ).value as Model;
       const fakeMessage = Message.create(
         "system",
-        chaConfigInput.initialSystemMessage,
+        chatConfigInput.initialSystemMessage,
         fakeModel
       ).value as Message;
       const fakeChat = Chat.create("uuid", fakeMessage, {
-        frequencyPenalty: chaConfigInput.frequencyPenalty,
-        maxTokens: chaConfigInput.maxTokens,
+        frequencyPenalty: chatConfigInput.frequencyPenalty,
+        maxTokens: chatConfigInput.maxTokens,
         model: fakeModel,
-        n: chaConfigInput.n,
-        presencePenalty: chaConfigInput.presencePenalty,
-        stop: chaConfigInput.stop,
-        temperature: chaConfigInput.temperature,
-        topP: chaConfigInput.temperature,
+        n: chatConfigInput.n,
+        presencePenalty: chatConfigInput.presencePenalty,
+        stop: chatConfigInput.stop,
+        temperature: chatConfigInput.temperature,
+        topP: chatConfigInput.temperature,
       }).value as Chat;
       sut.chatRepository.createChat(fakeChat);
       return {
         sut,
-        chaConfigInput,
+        chatConfigInput,
         fakeChat,
         fakeModel,
         fakeMessage,
@@ -70,12 +70,12 @@ describe("testing chat completion use case", () => {
   });
 
   it("should throw error when creating model with invalid maxTokens on new chat", async () => {
-    const { chaConfigInput, sut } = makeSut();
+    const { chatConfigInput, sut } = makeSut();
     const newChat = await sut.createNewChat({
       chatId: "uuid",
       userId: "uuid",
       userMessage: "test",
-      config: { ...chaConfigInput, modelMaxTokens: 0 },
+      config: { ...chatConfigInput, modelMaxTokens: 0 },
     });
     expect(newChat).toEqual(
       left(
@@ -85,12 +85,12 @@ describe("testing chat completion use case", () => {
   });
 
   it("should throw error when creating initial message on new chat when chat not found", async () => {
-    const { chaConfigInput, sut } = makeSut();
+    const { chatConfigInput, sut } = makeSut();
     const chatCompletion = await sut.execute({
       chatId: "",
       userId: "uuid",
       userMessage: "test",
-      config: { ...chaConfigInput, initialSystemMessage: "" },
+      config: { ...chatConfigInput, initialSystemMessage: "" },
     });
     expect(chatCompletion).toEqual(
       left(new Error("error creating initial message: content is empty"))
@@ -98,12 +98,12 @@ describe("testing chat completion use case", () => {
   });
 
   it("should throw error when creating initial message without content on new chat", async () => {
-    const { chaConfigInput, sut } = makeSut();
+    const { chatConfigInput, sut } = makeSut();
     const newChat = await sut.createNewChat({
       chatId: "uuid",
       userId: "uuid",
       userMessage: "test",
-      config: { ...chaConfigInput, initialSystemMessage: "" },
+      config: { ...chatConfigInput, initialSystemMessage: "" },
     });
     expect(newChat).toEqual(
       left(new Error("error creating initial message: content is empty"))
@@ -111,12 +111,12 @@ describe("testing chat completion use case", () => {
   });
 
   it("should throw error when creating a new chat when chat not found", async () => {
-    const { chaConfigInput, sut } = makeSut();
+    const { chatConfigInput, sut } = makeSut();
     const chatCompletion = await sut.execute({
       chatId: "",
       userId: "",
       userMessage: "test",
-      config: chaConfigInput,
+      config: chatConfigInput,
     });
     expect(chatCompletion).toEqual(
       left(new Error("error creating new chat: user id is empty"))
@@ -124,12 +124,12 @@ describe("testing chat completion use case", () => {
   });
 
   it("should throw error when creating a new chat", async () => {
-    const { chaConfigInput, sut } = makeSut();
+    const { chatConfigInput, sut } = makeSut();
     const newChat = await sut.createNewChat({
       chatId: "uuid",
       userId: "",
       userMessage: "test",
-      config: chaConfigInput,
+      config: chatConfigInput,
     });
     expect(newChat).toEqual(
       left(new Error("error creating new chat: user id is empty"))
@@ -137,7 +137,7 @@ describe("testing chat completion use case", () => {
   });
 
   it("should throw error when saving a new chat that already exists", async () => {
-    const { chaConfigInput, sut } = makeSut();
+    const { chatConfigInput, sut } = makeSut();
     jest
       .spyOn(sut.chatRepository, "createChat")
       .mockReturnValue(
@@ -149,19 +149,19 @@ describe("testing chat completion use case", () => {
       chatId: "uuid",
       userId: "uuid",
       userMessage: "test",
-      config: chaConfigInput,
+      config: chatConfigInput,
     });
     expect(newChat).toEqual(left(new Error("error saving new chat: chat already exists")));
   });
 
   it("should throw an error when trying to append a message when the chat is ended", async () => {
-    const { chaConfigInput, sut, fakeChat } = makeSut();
+    const { chatConfigInput, sut, fakeChat } = makeSut();
     fakeChat.end();
     const err = await sut.execute({
       chatId: fakeChat.id,
       userId: "uuid",
       userMessage: "test",
-      config: chaConfigInput,
+      config: chatConfigInput,
     });
     expect(err).toEqual(
       left(
@@ -173,12 +173,12 @@ describe("testing chat completion use case", () => {
   });
 
   it("should throw an error creating user message if chat was found", async () => {
-    const { chaConfigInput, sut, fakeChat } = makeSut();
+    const { chatConfigInput, sut, fakeChat } = makeSut();
     const result = await sut.execute({
       chatId: fakeChat.id,
       userId: "uuid",
       userMessage: "",
-      config: chaConfigInput,
+      config: chatConfigInput,
     });
     expect(result).toEqual(
       left(new Error("error creating user message: content is empty"))
@@ -186,19 +186,19 @@ describe("testing chat completion use case", () => {
   });
 
   it("should not create a new chat if the chat already exists", async () => {
-    const { chaConfigInput, sut, fakeChat } = makeSut();
+    const { chatConfigInput, sut, fakeChat } = makeSut();
     const createNewChat = jest.spyOn(sut, "createNewChat");
     await sut.execute({
       chatId: fakeChat.id,
       userId: "uuid",
       userMessage: "test",
-      config: chaConfigInput,
+      config: chatConfigInput,
     });
     expect(createNewChat).toHaveBeenCalledTimes(0);
   });
 
   it("should throw an error when openai createChatCompletion has error", async () => {
-    const { chaConfigInput, sut, fakeChat } = makeSut();
+    const { chatConfigInput, sut, fakeChat } = makeSut();
     jest
       .spyOn(sut.openAiGateway, "createChatCompletion")
       .mockReturnValue(
@@ -210,7 +210,7 @@ describe("testing chat completion use case", () => {
       chatId: 'uuid',
       userId: 'uuid',
       userMessage: "test",
-      config: chaConfigInput,
+      config: chatConfigInput,
     });
     expect(err).toEqual(
       left(new Error("error openai: error processing the request"))
@@ -218,9 +218,9 @@ describe("testing chat completion use case", () => {
   });
 
   it("should throw an error when creating the assistent message instance has error", async () => {
-    const { chaConfigInput, sut, fakeChat } = makeSut();
+    const { chatConfigInput, sut } = makeSut();
     jest
-      .spyOn(sut.chatRepository, "saveChat")
+      .spyOn(sut.chatRepository, "updateChat")
       .mockReturnValue(
         new Promise((resolve) => resolve(left(new Error("err saving chat"))))
       );
@@ -228,13 +228,13 @@ describe("testing chat completion use case", () => {
       chatId: 'uuid',
       userId: 'uuid',
       userMessage: "test",
-      config: chaConfigInput,
+      config: chatConfigInput,
     });
     expect(err).toEqual(left(new Error("err saving chat")));
   });
 
   it("should throw an error when appending assistent message has error", async () => {
-    const { chaConfigInput, sut, fakeChat } = makeSut();
+    const { chatConfigInput, sut, fakeChat } = makeSut();
     jest.spyOn(sut.openAiGateway, "createChatCompletion").mockReturnValue(
       new Promise((resolve) =>
         resolve(
@@ -253,13 +253,13 @@ describe("testing chat completion use case", () => {
       chatId: fakeChat.id,
       userId: 'uuid',
       userMessage: "test",
-      config: chaConfigInput,
+      config: chatConfigInput,
     });
     expect(err).toEqual(left(new Error("content is empty")));
   });
 
   it("should throw an error when trying to append a message when the chat is ended", async () => {
-    const { chaConfigInput, sut, fakeChat, fakeMessage } = makeSut();
+    const { chatConfigInput, sut, fakeChat, fakeMessage } = makeSut();
     let addMessageOnChatBehavior = 1;
     jest.spyOn(sut, "addMessageOnChat").mockImplementation(() => {
       if (addMessageOnChatBehavior === 1) {
@@ -278,7 +278,7 @@ describe("testing chat completion use case", () => {
       chatId: fakeChat.id,
       userId: "uuid",
       userMessage: "test",
-      config: chaConfigInput,
+      config: chatConfigInput,
     });
     expect(err).toEqual(
       left(
@@ -291,12 +291,12 @@ describe("testing chat completion use case", () => {
   });
 
   it("should return the chat completion ", async () => {
-    const { chaConfigInput, sut, fakeChat } = makeSut();
+    const { chatConfigInput, sut, fakeChat } = makeSut();
     const chatCompletion = await sut.execute({
       chatId: fakeChat.id,
       userId: "uuid",
       userMessage: "test",
-      config: chaConfigInput,
+      config: chatConfigInput,
     });
     expect(chatCompletion).toEqual(
       right({

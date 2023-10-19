@@ -92,20 +92,20 @@ describe("InMemoryChatRepository", () => {
     expect(foundChat).toEqual(fakeChat);
   });
 
-  test("saveChat should return an error if chat does not exist", async () => {
+  test("updateChat should return an error if chat does not exist", async () => {
     const { sut, createChatStub, fakeChatOptions } = makeSut();
     const chatToUpdate = createChatStub("user-uuid", fakeChatOptions)
       .value as Chat;
-    const result = await sut.saveChat(chatToUpdate);
+    const result = await sut.updateChat(chatToUpdate);
     expect(result.isLeft()).toBe(true);
     const error = result.value as Error;
     expect(error.message).toBe("chat not found");
   });
 
-  test("saveChat should update an existing chat", async () => {
+  test("updateChat should update an existing chat", async () => {
     const { sut, fakeChat } = makeSut();
     const chatToUpdate = (await sut.createChat(fakeChat)).value as Chat;
-    const result = await sut.saveChat(chatToUpdate);
+    const result = await sut.updateChat(chatToUpdate);
     expect(result.isRight()).toBe(true);
     const updatedChat = result.value as Chat;
     expect(updatedChat).toEqual(chatToUpdate);
