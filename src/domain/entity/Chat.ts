@@ -45,7 +45,7 @@ export class Chat {
     return this._tokenUsage;
   }
 
-  constructor({
+  private constructor({
     id,
     userId,
     initialSystemMessage,
@@ -68,10 +68,11 @@ export class Chat {
   public static create(
     userId: string,
     initialSystemMessage: Message,
-    chatConfig: TChatConfig
+    chatConfig: TChatConfig,
+    id?: string
   ): Either<Error, Chat> {
     const chat = new Chat({
-      id: uuid.v4(),
+      id: id ?? uuid.v4(),
       userId,
       initialSystemMessage,
       messages: [],
@@ -80,20 +81,21 @@ export class Chat {
       status: "active",
       tokenUsage: 0,
     });
-
-    chat.addMessage(initialSystemMessage);
-
     const chatOrError = this.validate(chat);
     if (chatOrError.isLeft()) {
       return left(chatOrError.value);
     }
-
     return right(chat);
   }
 
   static validate(chat: Chat): Either<Error, Chat> {
     const { config, userId, status } = chat;
-
+    if (chat.id === "") {
+      return left(new Error("id is empty"));
+    }
+    if (!uuid.validate(chat.id)) {
+      return left(new Error("id needs to be a valid uuid"));
+    }
     if (userId === "") {
       return left(new Error("user id is empty"));
     }
@@ -118,6 +120,11 @@ export class Chat {
     if (config.frequencyPenalty < -2 || config.frequencyPenalty > 2) {
       return left(new Error("frequencyPenalty should be between -2 and 2"));
     }
+    if (chat.initialSystemMessage.role !== "system") {
+      return left(
+        new Error("initial system message needs to have the role 'system'")
+      );
+    }
     return right(chat);
   }
 
@@ -125,10 +132,8 @@ export class Chat {
     if (this._status === "ended") {
       return left(new Error("chat is ended, no more messages allowed"));
     }
-
     this.messages.push(m);
     this._tokenUsage += m.tokens;
-
     while (this._tokenUsage > this.config.model.maxTokens) {
       const oldestMessage = this.messages.shift();
       if (oldestMessage) {
@@ -139,11 +144,16 @@ export class Chat {
     return right(m);
   }
 
+  public addErasedMessage(m: Message): Either<Error, Message> {
+    this.erasedMessages.push(m);
+    return right(m);
+  }
+
   public end(): void {
     this._status = "ended";
   }
 
-  public coutMessages(): number {
+  public countMessages(): number {
     return this.messages.length;
   }
 }
