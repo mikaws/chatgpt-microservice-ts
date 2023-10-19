@@ -21,131 +21,56 @@ interface IChatOptions {
   frequencyPenalty: number;
 }
 
-const createChat = (userId: string, options: IChatOptions) => {
+const createChat = (userId: string, options: IChatOptions, id?: string) => {
   const { maxTokens } = options;
   const model = Model.create("codex", maxTokens);
   const message = Message.create(
-    "user",
-    "Why the sky is blue?",
+    "system",
+    "Please, be a good assistant",
     model.value as Model
   );
   const chatConfig = {
     ...options,
     model: model.value as Model,
   };
-  return Chat.create(userId, message.value as Message, chatConfig);
+  return Chat.create(userId, message.value as Message, chatConfig, id);
 };
 
 describe("testing Chat", () => {
-  it("should to create a Chat and return values correctly", () => {
-    const chatOrError = createChat("uuid", {
-      frequencyPenalty: 2.0,
-      maxTokens: 500,
-      n: 10,
-      presencePenalty: 1.5,
-      stop: [],
-      temperature: 0.75,
-      topP: 0.8,
-    });
-    expect(chatOrError.isRight()).toBeTruthy();
-    const chat = chatOrError.value as Chat;
-
-    expect(chat.erasedMessages.length).toBe(0);
-    expect(chat.status).toBe("active");
-    expect(chat.tokenUsage).toBe(6);
-  });
-
-  it("should return the amount of messages when coutMessages method is called", () => {
-    const chatOrError = createChat("uuid", {
-      frequencyPenalty: 2.0,
-      maxTokens: 500,
-      n: 10,
-      presencePenalty: 1.5,
-      stop: [],
-      temperature: 0.75,
-      topP: 0.8,
-    });
-    expect(chatOrError.isRight()).toBeTruthy();
-    const chat = chatOrError.value as Chat;
-
-    expect(chat.coutMessages()).toBe(1);
-  });
-
-  it("should have status as ended when end method is called", () => {
-    const chatOrError = createChat("uuid", {
-      frequencyPenalty: 2.0,
-      maxTokens: 500,
-      n: 10,
-      presencePenalty: 1.5,
-      stop: [],
-      temperature: 0.75,
-      topP: 0.8,
-    });
-    expect(chatOrError.isRight()).toBeTruthy();
-    const chat = chatOrError.value as Chat;
-    chat.end();
-
-    expect(chat.status).toBe("ended");
-  });
-
-  it("should remove messages from the chat when token usage was reached", () => {
-    const maxTokens = 28;
-    const chatOrError = createChat("uuid", {
-      frequencyPenalty: 2.0,
-      maxTokens,
-      n: 10,
-      presencePenalty: 1.5,
-      stop: [],
-      temperature: 0.75,
-      topP: 0.8,
-    });
-    expect(chatOrError.isRight()).toBeTruthy();
-    const chat = chatOrError.value as Chat;
-
-    for (let i = 1; i <= 4; i++) {
-      const model = Model.create("codex", maxTokens);
-      const message = Message.create(
-        "user",
-        `Mock message n°: ${i}`,
-        model.value as Model
-      );
-      chat.addMessage(message.value as Message);
-    }
-
-    expect(chat.erasedMessages.length).toBe(1);
-    expect(chat.tokenUsage).toBe(24);
-  });
-
-  it("should return error when adding message if chat is ended", () => {
-    const chatOrError = createChat("uuid", {
-      frequencyPenalty: 2.0,
-      maxTokens: 500,
-      n: 10,
-      presencePenalty: 1.5,
-      stop: [],
-      temperature: 0.75,
-      topP: 0.8,
-    });
-    expect(chatOrError.isRight()).toBeTruthy();
-    const chat = chatOrError.value as Chat;
-
-    const model = Model.create("codex", 500);
-    const messageOrError = Message.create(
-      "user",
-      "How be a better person?",
-      model.value as Model
+  it("should return left if id is empty", () => {
+    const error = createChat(
+      "uuid",
+      {
+        frequencyPenalty: 2.0,
+        maxTokens: 500,
+        n: 10,
+        presencePenalty: 1.5,
+        stop: [],
+        temperature: 0.75,
+        topP: 0.8,
+      },
+      ""
     );
-
-    expect(messageOrError.isRight()).toBeTruthy();
-    const message = messageOrError.value as Message;
-
-    chat.end();
-
-    expect(chat.addMessage(message)).toEqual(
-      left(new Error("chat is ended, no more messages allowed"))
-    );
+    expect(error.isLeft()).toBeTruthy();
+    expect(error).toEqual(left(new Error("id is empty")));
   });
-
+  it("should return left if id is empty", () => {
+    const error = createChat(
+      "uuid",
+      {
+        frequencyPenalty: 2.0,
+        maxTokens: 500,
+        n: 10,
+        presencePenalty: 1.5,
+        stop: [],
+        temperature: 0.75,
+        topP: 0.8,
+      },
+      "uuid"
+    );
+    expect(error.isLeft()).toBeTruthy();
+    expect(error).toEqual(left(new Error("id needs to be a valid uuid")));
+  });
   it("should return error if user id isn't valid", () => {
     const chat = createChat("", {
       frequencyPenalty: 2.0,
@@ -172,7 +97,6 @@ describe("testing Chat", () => {
     expect(chatOrError.isRight()).toBeTruthy();
     const chat = chatOrError.value as Chat;
     jest.spyOn(chat, "status", "get").mockReturnValue("other status");
-
     expect(Chat.validate(chat)).toEqual(left(new Error("invalid status")));
   });
 
@@ -318,5 +242,128 @@ describe("testing Chat", () => {
     expect(chat).toEqual(
       left(new Error("frequencyPenalty should be between -2 and 2"))
     );
+  });
+
+  it("should to create a Chat and return values correctly", () => {
+    const chatOrError = createChat("uuid", {
+      frequencyPenalty: 2.0,
+      maxTokens: 500,
+      n: 10,
+      presencePenalty: 1.5,
+      stop: [],
+      temperature: 0.75,
+      topP: 0.8,
+    });
+    expect(chatOrError.isRight()).toBeTruthy();
+    const chat = chatOrError.value as Chat;
+    expect(chat.erasedMessages.length).toBe(0);
+    expect(chat.status).toBe("active");
+    expect(chat.tokenUsage).toBe(0);
+  });
+
+  it("should return the amount of messages when coutMessages method is called", () => {
+    const chatOrError = createChat("uuid", {
+      frequencyPenalty: 2.0,
+      maxTokens: 500,
+      n: 10,
+      presencePenalty: 1.5,
+      stop: [],
+      temperature: 0.75,
+      topP: 0.8,
+    });
+    expect(chatOrError.isRight()).toBeTruthy();
+    const chat = chatOrError.value as Chat;
+    expect(chat.countMessages()).toBe(0);
+  });
+
+  it("should have status as ended when end method is called", () => {
+    const chatOrError = createChat("uuid", {
+      frequencyPenalty: 2.0,
+      maxTokens: 500,
+      n: 10,
+      presencePenalty: 1.5,
+      stop: [],
+      temperature: 0.75,
+      topP: 0.8,
+    });
+    expect(chatOrError.isRight()).toBeTruthy();
+    const chat = chatOrError.value as Chat;
+    chat.end();
+    expect(chat.status).toBe("ended");
+  });
+
+  it("should remove messages from the chat when token usage was reached", () => {
+    const maxTokens = 28;
+    const chatOrError = createChat("uuid", {
+      frequencyPenalty: 2.0,
+      maxTokens,
+      n: 10,
+      presencePenalty: 1.5,
+      stop: [],
+      temperature: 0.75,
+      topP: 0.8,
+    });
+    expect(chatOrError.isRight()).toBeTruthy();
+    const chat = chatOrError.value as Chat;
+    for (let i = 1; i <= 5; i++) {
+      const model = Model.create("codex", maxTokens);
+      const message = Message.create(
+        "user",
+        `Mock message n°: ${i}`,
+        model.value as Model
+      );
+      chat.addMessage(message.value as Message);
+    }
+    expect(chat.erasedMessages.length).toBe(1);
+    expect(chat.tokenUsage).toBe(24);
+  });
+
+  it("should return error when adding message if chat is ended", () => {
+    const chatOrError = createChat("uuid", {
+      frequencyPenalty: 2.0,
+      maxTokens: 500,
+      n: 10,
+      presencePenalty: 1.5,
+      stop: [],
+      temperature: 0.75,
+      topP: 0.8,
+    });
+    expect(chatOrError.isRight()).toBeTruthy();
+    const chat = chatOrError.value as Chat;
+    const model = Model.create("codex", 500);
+    const messageOrError = Message.create(
+      "user",
+      "How be a better person?",
+      model.value as Model
+    );
+    expect(messageOrError.isRight()).toBeTruthy();
+    const message = messageOrError.value as Message;
+    chat.end();
+    expect(chat.addMessage(message)).toEqual(
+      left(new Error("chat is ended, no more messages allowed"))
+    );
+  });
+
+  it("should erase messages from chat when addErasedMessage method be called", () => {
+    const maxTokens = 28;
+    const chatOrError = createChat("uuid", {
+      frequencyPenalty: 2.0,
+      maxTokens,
+      n: 10,
+      presencePenalty: 1.5,
+      stop: [],
+      temperature: 0.75,
+      topP: 0.8,
+    });
+    expect(chatOrError.isRight()).toBeTruthy();
+    const chat = chatOrError.value as Chat;
+    const model = Model.create("codex", maxTokens);
+    const message = Message.create(
+      "user",
+      `Message deleted`,
+      model.value as Model
+    );
+    chat.addErasedMessage(message.value as Message);
+    expect(chat.erasedMessages.length).toBe(1);
   });
 });
