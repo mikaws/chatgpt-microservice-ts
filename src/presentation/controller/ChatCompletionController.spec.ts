@@ -79,7 +79,7 @@ describe("chat completion controller", () => {
         userMessage: "test",
       },
     };
-    const controller = new ChatCompletionController(sut);
+    const controller = new ChatCompletionController(sut, chatConfigInput);
     const res = await controller.handler(httpRequest);
     expect(res.statusCode).toBe(500);
     expect(res.body).toBe("error creating new chat: user id is empty");
@@ -96,9 +96,8 @@ describe("chat completion controller", () => {
         userMessage: "test",
       },
     };
-    const controller = new ChatCompletionController(sut);
+    const controller = new ChatCompletionController(sut, chatConfigInput);
     const res = await controller.handler(httpRequest);
-    
     expect(res.statusCode).toBe(200);
     expect(res.body).toStrictEqual({
       chatId: fakeChat.id,
