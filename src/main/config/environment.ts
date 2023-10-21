@@ -20,15 +20,16 @@ const rawEnv: UnsanitizedEnvironment = {
   FREQUENCY_PENALTY: process.env.FREQUENCY_PENALTY,
   PRESENCE_PENALTY: process.env.PRESENCE_PENALTY,
   SERVER_PORT: process.env.SERVER_PORT,
+  ENVIRONMENT: process.env.ENVIRONMENT,
 };
-function sanitizeEnv() {
-  for (const key in rawEnv) {
+export function sanitizeEnv(env: UnsanitizedEnvironment) {
+  for (const key in env) {
     if (process.env[key] === undefined) {
       throw new Error(`key ${key} not found or undefined in .env file`);
     }
   }
 }
-sanitizeEnv();
+sanitizeEnv(rawEnv);
 const env: Environment = {
   DB_HOST: String(process.env.DB_HOST),
   DB_PORT: Number(process.env.DB_PORT),
@@ -47,5 +48,6 @@ const env: Environment = {
   FREQUENCY_PENALTY: Number(process.env.FREQUENCY_PENALTY),
   PRESENCE_PENALTY: Number(process.env.PRESENCE_PENALTY),
   SERVER_PORT: Number(process.env.SERVER_PORT),
+  ENVIRONMENT: String(process.env.ENVIRONMENT),
 };
 export default env;

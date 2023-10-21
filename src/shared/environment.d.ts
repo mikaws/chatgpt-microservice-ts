@@ -16,6 +16,7 @@ export type UnsanitizedEnvironment = {
   FREQUENCY_PENALTY?: string;
   PRESENCE_PENALTY?: string;
   SERVER_PORT?: string;
+  ENVIRONMENT?: string;
 };
 
 export type Environment = {
@@ -36,6 +37,7 @@ export type Environment = {
   FREQUENCY_PENALTY: number;
   PRESENCE_PENALTY: number;
   SERVER_PORT: number;
+  ENVIRONMENT: string;
 };
 
 declare global {
