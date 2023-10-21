@@ -5,9 +5,11 @@
   "main": "src/index.js",
   "scripts": {
     "dev": "ts-node src",
-    "test:unit": "jest",
-    "test:unit-verbose": "jest --runInBand --detectOpenHandles",
-    "test:coverage": "jest --coverage"
+    "test": "jest --passWithNoTests --runInBand --no-cache --silent",
+    "test:unit": "npm test -- -c jest-unit-config.js",
+    "test:unit-verbose": "jest --runInBand --detectOpenHandles -c jest-unit-config.js",
+    "test:integration": "npm test -- -c jest-integration-config.js",
+    "test:ci": "npm test -- --coverage"
   },
   "keywords": [],
   "author": "",
