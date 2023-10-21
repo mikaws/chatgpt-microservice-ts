@@ -9,9 +9,7 @@ describe("cors", () => {
     app = await Application.setup();
   });
   it("should enable cors", async () => {
-    app.get("/test-cors", (req, res) => {
-      console.log("teste ", req.headers);
-    });
+    app.get("/test-cors", (req, res) => {});
     await request(app)
       .get('/test_cors')
       .expect('access-control-allow-origin', '*')
