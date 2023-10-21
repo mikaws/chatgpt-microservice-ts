@@ -12,7 +12,7 @@ services:
       - "5432:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
-      - ./src/infra/sql/migrations:/docker-entrypoint-initdb.d/src/infra/sql/migrations
+      - ./src/infra/db/sql/migrations:/docker-entrypoint-initdb.d/src/infra/db/sql/migrations
 
 volumes:
   pg_data:

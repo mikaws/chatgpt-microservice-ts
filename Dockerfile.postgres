@@ -2,4 +2,4 @@ FROM postgres:latest
 
 RUN apt-get update && apt-get install -y postgresql-client
 
-COPY ./src/infra/sql/migrations /docker-entrypoint-initdb.d/
+COPY ./src/infra/db/sql/migrations /docker-entrypoint-initdb.d/
