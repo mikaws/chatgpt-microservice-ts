@@ -5,26 +5,33 @@ import { InMemoryOpenAIGateway } from "../../domain/gateway/InMemoryOpenAIGatewa
 import { InMemoryChatRepository } from "../../domain/repository/InMemoryChatRepository";
 import {
   ChatCompletionConfigInputDTO,
-  ChatCompletionInputDTO,
   ChatCompletionOutputDTO,
 } from "../../domain/usecase/ChatCompletionDTO";
 import { ChatCompletionUseCase } from "../../domain/usecase/ChatCompletionUseCase";
+import { ChatCompletionBody } from "../protocols/body";
+import { RequiredFieldValidator } from "../validators/RequiredFieldsValidator";
 import { ChatCompletionController } from "./ChatCompletionController";
 
 type SutTypes = {
-  sut: ChatCompletionUseCase;
+  sut: ChatCompletionController;
   chatConfigInput: ChatCompletionConfigInputDTO;
   fakeChat: Chat;
+  useCase: ChatCompletionUseCase;
 };
 
 describe("chat completion controller", () => {
   let makeSut: () => SutTypes;
   beforeEach(() => {
     makeSut = () => {
-      const sut = new ChatCompletionUseCase(
+      const useCase = new ChatCompletionUseCase(
         new InMemoryChatRepository(),
         new InMemoryOpenAIGateway()
       );
+      const validator = new RequiredFieldValidator<ChatCompletionBody>([
+        "chatId",
+        "userId",
+        "userMessage",
+      ]);
       const chatConfigInput: ChatCompletionConfigInputDTO = {
         temperature: 0.75,
         topP: 0.8,
@@ -37,6 +44,11 @@ describe("chat completion controller", () => {
         initialSystemMessage: "hello",
         modelMaxTokens: 500,
       };
+      const sut = new ChatCompletionController(
+        validator,
+        useCase,
+        chatConfigInput
+      );
       const fakeModel = Model.create(
         chatConfigInput.model,
         chatConfigInput.maxTokens
@@ -56,11 +68,12 @@ describe("chat completion controller", () => {
         temperature: chatConfigInput.temperature,
         topP: chatConfigInput.temperature,
       }).value as Chat;
-      sut.chatRepository.createChat(fakeChat);
+      useCase.chatRepository.createChat(fakeChat);
       return {
         sut,
         chatConfigInput,
         fakeChat,
+        useCase,
       };
     };
   });
@@ -69,35 +82,47 @@ describe("chat completion controller", () => {
     jest.restoreAllMocks();
   });
 
-  it("should be status 500", async () => {
+  it("should be status 400", async () => {
     const { sut, chatConfigInput } = makeSut();
-    const httpRequest: { body: ChatCompletionInputDTO } = {
+    const httpRequest = {
       body: {
         chatId: "uuid",
         config: chatConfigInput,
-        userId: "",
-        userMessage: "test",
-      },
+        userId: "uuid",
+      } as unknown as ChatCompletionBody,
     };
-    const controller = new ChatCompletionController(sut, chatConfigInput);
-    const res = await controller.handler(httpRequest);
-    expect(res.statusCode).toBe(500);
-    expect(res.body).toBe("error creating new chat: user id is empty");
+    const res = await sut.handler(httpRequest);
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toEqual("Error: missing field 'userMessage' in body");
   });
 
   it("should be status 500", async () => {
-    const { sut, fakeChat, chatConfigInput } = makeSut();
-    sut.chatRepository.createChat(fakeChat);
-    const httpRequest: { body: ChatCompletionInputDTO } = {
+    const { sut } = makeSut();
+    const httpRequest: { body: ChatCompletionBody } = {
+      body: {
+        chatId: "uuid",
+        userId: "",
+        userMessage: "abc",
+      },
+    };
+    const res = await sut.handler(httpRequest);
+    expect(res.statusCode).toBe(500);
+    expect(res.body).toEqual(
+      "Error: error creating new chat: user id is empty"
+    );
+  });
+
+  it("should be status 200", async () => {
+    const { sut, fakeChat, useCase } = makeSut();
+    useCase.chatRepository.createChat(fakeChat);
+    const httpRequest: { body: ChatCompletionBody } = {
       body: {
         chatId: fakeChat.id,
-        config: chatConfigInput,
         userId: "uuid",
         userMessage: "test",
       },
     };
-    const controller = new ChatCompletionController(sut, chatConfigInput);
-    const res = await controller.handler(httpRequest);
+    const res = await sut.handler(httpRequest);
     expect(res.statusCode).toBe(200);
     expect(res.body).toStrictEqual({
       chatId: fakeChat.id,
