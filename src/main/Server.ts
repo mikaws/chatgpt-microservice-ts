@@ -1,30 +1,23 @@
 import { postgreSQLDatabase } from "../infra/db/postgresql/postgresql-database";
-import dotenv from "dotenv";
 import { Application } from "./Application";
+import env from "./config/environment";
 
 export class Server {
-  private SERVER_PORT = 3000;
-
-  constructor() {
-    dotenv.config();
-    this.SERVER_PORT = process.env.SERVER_PORT || this.SERVER_PORT;
-  }
-
-  async initialize() {
+  async start() {
     await postgreSQLDatabase
       .connect({
-        user: process.env.DB_USER,
-        host: process.env.DB_HOST,
-        database: process.env.DB_NAME,
-        password: process.env.DB_PASSWORD,
-        port: process.env.DB_PORT,
+        user: env.DB_USER,
+        host: env.DB_HOST,
+        database: env.DB_NAME,
+        password: env.DB_PASSWORD,
+        port: env.DB_PORT,
       })
       .then(async () => {
         const server = await Application.setup();
-        server.listen(this.SERVER_PORT, () => {
-          console.info("Server is running on port", this.SERVER_PORT);
+        server.listen(env.SERVER_PORT, () => {
+          console.info("Server is running on port", env.SERVER_PORT);
         });
       })
-      .catch((err) => console.error(err));
+      .catch(console.error);
   }
 }

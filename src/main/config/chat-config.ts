@@ -1,17 +1,18 @@
 import { ChatCompletionConfigInputDTO } from "../../domain/usecase/ChatCompletionDTO";
+import env from "./environment";
 
 function getConfig(): ChatCompletionConfigInputDTO {
   return {
-    initialSystemMessage: process.env.INITIAL_CHAT_MESSAGE,
-    model: process.env.MODEL,
-    maxTokens: process.env.MAX_TOKENS,
-    modelMaxTokens: process.env.MODEL_MAX_TOKENS,
-    n: process.env.N,
-    stop: process.env.STOP,
-    temperature: process.env.TEMPERATURE,
-    topP: process.env.TOP_P,
-    frequencyPenalty: process.env.FREQUENCY_PENALTY,
-    presencePenalty: process.env.PRESENCE_PENALTY,
+    initialSystemMessage: env.INITIAL_CHAT_MESSAGE,
+    model: env.MODEL,
+    maxTokens: env.MAX_TOKENS,
+    modelMaxTokens: env.MODEL_MAX_TOKENS,
+    n: env.N,
+    stop: env.STOP,
+    temperature: env.TEMPERATURE,
+    topP: env.TOP_P,
+    frequencyPenalty: env.FREQUENCY_PENALTY,
+    presencePenalty: env.PRESENCE_PENALTY,
   };
 }
 const chatConfig = getConfig();

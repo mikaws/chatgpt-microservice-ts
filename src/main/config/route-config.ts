@@ -1,5 +1,5 @@
 import { Express, Router } from "express";
-import ChatCompletionRouter from "./chat-completion-router";
+import ChatCompletionRouter from "../routes/chat-completion-router";
 
 export const router = {
   setup(app: Express) {

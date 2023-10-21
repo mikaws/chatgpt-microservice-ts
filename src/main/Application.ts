@@ -1,14 +1,15 @@
-import express, { Router } from "express";
-import { router } from "./routes/router";
+import express from "express";
+import { router } from "./config/route-config";
 import { middlewareConfig } from "./config/middleware-config";
 import openAIClient from "../infra/openai/open-ai-client";
+import env from "./config/environment";
 
 export class Application {
   static async setup() {
     const app = express();
     router.setup(app);
     middlewareConfig.setup(app);
-    openAIClient.setup(process.env.OPEN_AI_API_KEY ?? "");
+    openAIClient.setup(env.OPENAI_API_KEY);
     return app;
   }
 }
