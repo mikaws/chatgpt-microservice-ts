@@ -3,6 +3,21 @@ import { postgreSQLDatabase } from "./postgresql-database";
 
 describe("PostgreSQL Database", () => {
   beforeAll(async () => {
+    await postgreSQLDatabase
+      .connect({
+        user: "test",
+        host: "test",
+        database: "test",
+        password: "test",
+        port: 1234,
+      })
+      .catch((err) => {
+        expect(err).toEqual(
+          new Error(
+            "couldn't connect with database 'getaddrinfo ENOTFOUND test'"
+          )
+        );
+      });
     await postgreSQLDatabase.connect({
       user: "postgres",
       host: "localhost",
