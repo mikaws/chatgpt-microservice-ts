@@ -9,11 +9,11 @@ describe("body parser", () => {
     app = await Application.setup();
   });
   it("should parse JSON", async () => {
-    app.get("/", function (req, res) {
+    app.get("/test-body-parser", function (req, res) {
       res.status(200).json({ name: "john" });
     });
     await request(app)
-      .get("/")
+      .get("/test-body-parser")
       .expect("Content-Type", /json/)
   });
 });
