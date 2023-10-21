@@ -14,13 +14,19 @@ export const postgreSQLDatabase: Database<Pool> = {
   pool: null as unknown as Pool,
 
   async connect(dbConfig: DBConfig): Promise<void> {
+    // pool will handle connections
     this.pool = new Pool(dbConfig);
+    // ensuring the database can acquires a client
+    const poolClient = await this.pool.connect().catch((err) => {
+      //
+      throw new Error(`couldn't connect with database '${err.message}'`);
+    });
+    // realising
+    poolClient.release();
   },
 
   async disconnect(): Promise<void> {
-    await this.pool
-      .end()
-      .then(() => console.info("Disconnected from PostgreSQL"));
+    this.pool.end();
   },
 
   async createChat(chat: CreateChatParams): Promise<Either<Error, any[]>> {
@@ -165,7 +171,8 @@ export const postgreSQLDatabase: Database<Pool> = {
   },
 
   async deleteChatMessages(chatId: string): Promise<Either<Error, any[]>> {
-    const query = "DELETE FROM messages WHERE erased = false AND order_msg != 0 AND chat_id = $1 ;";
+    const query =
+      "DELETE FROM messages WHERE erased = false AND order_msg != 0 AND chat_id = $1 ;";
     try {
       const result = await this.pool.query(query, [chatId]);
       return right(result.rows);
