@@ -51,7 +51,7 @@ export class ChatCompletionUseCase {
       err = messageAddedOrError.value;
       return left(new Error("error adding new message: " + err.message));
     }
-    const messages: ChatCompletionMessage[] = chat.messages.map(
+    let messages: ChatCompletionMessage[] = chat.messages.map(
       (message: Message): ChatCompletionMessage => {
         return {
           content: message.content,
@@ -59,6 +59,11 @@ export class ChatCompletionUseCase {
         } as ChatCompletionMessage;
       }
     );
+    const initialSystemMessage = {
+      content: chat.initialSystemMessage.content,
+      role: chat.initialSystemMessage.role,
+    } as ChatCompletionMessage;
+    messages = [initialSystemMessage, ...messages];
     const chatCompletionOrError = await this.openAiGateway.createChatCompletion(
       {
         model: chat.config.model.name,
@@ -112,7 +117,9 @@ export class ChatCompletionUseCase {
     return chat.addMessage(userMessage);
   }
 
-  async createNewChat(input: ChatCompletionInputDTO): Promise<Either<Error, Chat>> {
+  async createNewChat(
+    input: ChatCompletionInputDTO
+  ): Promise<Either<Error, Chat>> {
     const model = Model.create(input.config.model, input.config.modelMaxTokens);
     let err: Error;
     if (model.isLeft()) {
