@@ -4,7 +4,7 @@ import { makeChatCompletionController } from "../factories/chat-completion-contr
 
 const chatCompletionRouter = express.Router();
 
-chatCompletionRouter.route("/chat-completion")
+chatCompletionRouter.route("/chat/completion")
   .post(adaptRoute(makeChatCompletionController()))
 
 export default chatCompletionRouter;
