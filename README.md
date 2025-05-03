@@ -133,9 +133,10 @@ npm test
 
 ## Project Structure
 
-- `src/domain` — Entities, use cases, repository interfaces
+- `src/domain` — Entities, models, use cases, repository interfaces
 - `src/infra` — DB, API adapters, migrations
-- `src/app` — Controllers, server setup
+- `src/main` — Server setup, routes, configs
+- `src/presentation` — Controllers, http handling
 
 ---
 
