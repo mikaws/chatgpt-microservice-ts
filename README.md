@@ -81,7 +81,7 @@ Create a new chat or continue an existing one.
 
 ```json
 {
-  "chatId": "chat-id",      // set a uuid to start a chat
+  "chatId": "optional-chat-id",      // Omit or set to continue a chat
   "userId": "user-uuid",
   "userMessage": "Hello, how are you?",
   "config": {
@@ -93,7 +93,7 @@ Create a new chat or continue an existing one.
 }
 ```
 
-- `chatId`: Provide to continue an existing chat.
+- `chatId`: Omit to start a new chat, or provide to continue an existing chat.
 - `userId`: Your user identifier.
 - `userMessage`: The message to send.
 - `config`: (Optional) Chat configuration (model, tokens, etc.).
