@@ -17,7 +17,7 @@ describe("chat completion routes", () => {
   })
   it("should return 400", async () => {
     await request(app)
-      .post("/api/chat-completion")
+      .post("/api/chat/completion")
       .send({
         chatId,
         userId,
