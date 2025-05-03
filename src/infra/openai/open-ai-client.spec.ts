@@ -1,5 +1,4 @@
-import { OpenAIApi } from "openai";
-import { left, right } from "../../shared/either";
+import { OpenAI} from "openai";
 import openAIClient from "./open-ai-client";
 
 describe("Open AI Client", () => {
@@ -7,10 +6,10 @@ describe("Open AI Client", () => {
     openAIClient.setup("test");
   });
   afterAll(() => {
-    openAIClient.client = null as unknown as OpenAIApi;
+    openAIClient.client = null as unknown as OpenAI;
   });
   it("should setup the client", () => {
     openAIClient.setup("test");
-    expect(openAIClient.client).toHaveProperty("createChatCompletion");
+    expect(openAIClient.client.chat).toHaveProperty("completions");
   });
 });

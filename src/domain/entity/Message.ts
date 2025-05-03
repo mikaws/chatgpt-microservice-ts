@@ -6,7 +6,7 @@ import { Either, left, right } from "../../shared/either";
 export type TMessage = {
   id: string;
   role: string;
-  content: string;
+  content: string | null;
   model: string;
   tokens: number;
   createdAt: Date;
@@ -15,7 +15,7 @@ export type TMessage = {
 export class Message {
   readonly id: string;
   readonly role: string;
-  readonly content: string;
+  readonly content: string | null;
   readonly model: string;
   readonly tokens: number;
   readonly createdAt: Date;
@@ -39,7 +39,7 @@ export class Message {
 
   public static create(
     role: string,
-    content: string,
+    content: string | null,
     model: Model,
     id?: string,
     createdAt?: Date

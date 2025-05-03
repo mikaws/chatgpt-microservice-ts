@@ -21,5 +21,5 @@ export type ChatCompletionInputDTO = {
 export type ChatCompletionOutputDTO = {
   chatId: string;
   userId: string;
-  content: string;
+  content: string | null;
 };

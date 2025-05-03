@@ -1,3 +1,4 @@
+import { ChatCompletionCreateParamsNonStreaming } from "openai/resources/chat";
 import { ChatCompletionRequest } from "../../../domain/gateway/models/OpenAIRequests";
 import { ChatCompletionResponse } from "../../../domain/gateway/models/OpenAIResponses";
 import { OpenAIGateway } from "../../../domain/gateway/OpenAIGateway";
@@ -9,8 +10,8 @@ export class OpenAiAdapter implements OpenAIGateway {
     createChatCompletionRequest: ChatCompletionRequest
   ): Promise<Either<Error, ChatCompletionResponse>> {
     try {
-      const { data } = await openAIClient.client.createChatCompletion(
-        createChatCompletionRequest
+      const data = await openAIClient.client.chat.completions.create(
+        createChatCompletionRequest as ChatCompletionCreateParamsNonStreaming
       );
       const choice = data.choices[0];
       if (!choice)

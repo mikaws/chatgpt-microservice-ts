@@ -1,11 +1,10 @@
-import { OpenAIApi, Configuration } from "openai";
+import { OpenAI } from "openai";
 
 const openAIClient = {
-  client: null as unknown as OpenAIApi,
+  client: null as unknown as OpenAI,
 
   setup(key: string): void {
-    const config = new Configuration({ apiKey: key });
-    this.client = new OpenAIApi(config);
+    this.client = new OpenAI({ apiKey: key });
   },
 };
 

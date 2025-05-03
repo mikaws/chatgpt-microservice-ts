@@ -4,7 +4,7 @@ export interface ChatCompletionRequest {
   model: string;
   messages: Array<{
     role: ChatCompletionMessageRole;
-    content: string;
+    content: string | null;
     name?: string;
   }>;
   temperature?: number | null;

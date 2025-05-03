@@ -2,7 +2,7 @@ import { ChatCompletionMessageRole } from "./OpenAIRoles";
 
 export interface ChatCompletionMessage {
   role: ChatCompletionMessageRole;
-  content: string;
+  content: string | null;
 }
 
 export interface ChatCompletionResponse {

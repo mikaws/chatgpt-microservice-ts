@@ -29,7 +29,7 @@ export type MessageDB = {
   id: string;
   chat_id: string;
   role: string;
-  content: string;
+  content: string | null;
   tokens: number;
   model: string;
   erased: boolean;
