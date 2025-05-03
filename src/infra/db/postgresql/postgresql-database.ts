@@ -84,7 +84,7 @@ export const postgreSQLDatabase: Database<Pool> = {
   },
 
   async findChatById(
-    chatId: string
+    chatId?: string
   ): Promise<Either<Error, ChatDB | undefined>> {
     const query = "SELECT * FROM chats WHERE id = $1;";
     try {

@@ -14,7 +14,7 @@ export interface Database<T> {
   disconnect(): Promise<void>;
   createChat(chat: CreateChatParams): Promise<Either<Error, any>>;
   addMessage(message: AddMessageParams): Promise<Either<Error, any>>;
-  findChatById(chatId: string): Promise<Either<Error, ChatDB | undefined>>;
+  findChatById(chatId?: string): Promise<Either<Error, ChatDB | undefined>>;
   findMessagesByChatId(chatId: string): Promise<Either<Error, MessageDB[]>>;
   findErasedMessagesByChatId(chatId: string): Promise<Either<Error, MessageDB[]>>;
   updateChat(chat: UpdateChatParams): Promise<Either<Error, any>>;

@@ -13,7 +13,6 @@ export function makeChatCompletionController() {
   const gateway = new OpenAiAdapter();
   const useCase = new ChatCompletionUseCase(repository, gateway);
   const validator = new RequiredFieldValidator<ChatCompletionBody>([
-    "chatId",
     "userId",
     "userMessage",
   ]);

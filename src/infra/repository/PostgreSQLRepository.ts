@@ -147,7 +147,7 @@ export class PostgreSQLRepository implements ChatRepository {
     return right(chat);
   }
 
-  async findChatById(chatId: string): Promise<Either<Error, Chat>> {
+  async findChatById(chatId?: string): Promise<Either<Error, Chat>> {
     let err: Error;
     const chatFoundOrError = await postgreSQLDatabase.findChatById(chatId);
     if (chatFoundOrError.isLeft()) {
